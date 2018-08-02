@@ -5,7 +5,7 @@ module DecodingAfterSanitization {
     bindingset[this]
     SanitizationKind() { any() }
 
-    abstract predicate isSanitizerOutput(DataFlow::Node node);
+    abstract predicate isSanitizer(DataFlow::Node sanitizer, DataFlow::Node output);
     abstract predicate isUnsafeDecoding(DecodingKind kind);
   }
 
@@ -23,7 +23,7 @@ module DecodingAfterSanitization {
     Configuration() { this = "DecodingAfterSanitization" }
 
     override predicate isSource(DataFlow::Node source) {
-      any(SanitizationKind kind).isSanitizerOutput(source)
+      any(SanitizationKind kind).isSanitizer(_, source)
     }
 
     override predicate isSink(DataFlow::Node sink) {
@@ -34,8 +34,39 @@ module DecodingAfterSanitization {
   class RegexpReplaceSanitization extends SanitizationKind {
     RegexpReplaceSanitization() { this = "RegexpReplaceSanitization" }
     
-    override predicate isSanitizerOutput(DataFlow::Node node) {
-      node.(DataFlow::MethodCallNode).getMethodName() = "replace"
+    override predicate isSanitizer(DataFlow::Node sanitizer, DataFlow::Node output) {
+      sanitizer = output and
+      sanitizer.(DataFlow::MethodCallNode).getMethodName() = "replace"
+    }
+
+    override predicate isUnsafeDecoding(DecodingKind kind) {
+      any()
+    }
+  }
+
+  private predicate isValidationCandidate(DataFlow::CallNode call) {
+    exists(string name | name = call.getCalleeName() |
+      name.regexpMatch("(?i)(is|has|contains|endswith|startswith)(in|un)?(safe|valid|expected|whitelist|blacklist|correct|secure|loggedin|.*admin|owne[rd]|format|relative|absolute|path).*")
+      or
+      name.regexpMatch("(?i)(check|validat|verif).*"))
+  }
+
+  private class ValidationCall extends DataFlow::CallNode, TaintTracking::SanitizerGuardNode {
+    ValidationCall() {
+      isValidationCandidate(this)
+    }
+
+    override predicate sanitizes(boolean output, Expr e) {
+      e = getAnArgument().asExpr() and
+      (output = true or output = false)
+    }
+  }
+
+  class GuardSanitization extends SanitizationKind {
+    GuardSanitization() { this = "GuardSanitization" }
+    
+    override predicate isSanitizer(DataFlow::Node sanitizer, DataFlow::Node output) {
+      sanitizer.(TaintTracking::SanitizerGuardNode).blocks(output)
     }
 
     override predicate isUnsafeDecoding(DecodingKind kind) {
@@ -46,8 +77,9 @@ module DecodingAfterSanitization {
   class HtmlSanitization extends SanitizationKind {
     HtmlSanitization() { this = "HtmlSanitization" }
     
-    override predicate isSanitizerOutput(DataFlow::Node node) {
-      node instanceof HtmlSanitizerCall
+    override predicate isSanitizer(DataFlow::Node sanitizer, DataFlow::Node output) {
+      sanitizer = output and
+      sanitizer instanceof HtmlSanitizerCall
     }
 
     override predicate isUnsafeDecoding(DecodingKind kind) {
@@ -58,8 +90,9 @@ module DecodingAfterSanitization {
   class FilenameSanitization extends SanitizationKind {
     FilenameSanitization() { this = "FilenameSanitization" }
 
-    override predicate isSanitizerOutput(DataFlow::Node node) {
-      node = DataFlow::moduleImport("sanitize-filename").getACall()
+    override predicate isSanitizer(DataFlow::Node sanitizer, DataFlow::Node output) {
+      sanitizer = output and
+      sanitizer = DataFlow::moduleImport("sanitize-filename").getACall()
     }
 
     override predicate isUnsafeDecoding(DecodingKind kind) {
@@ -102,8 +135,7 @@ module DecodingAfterSanitization {
     UriDecoding() { this = "UriDecoding" }
     
     override predicate isDecoderInput(DataFlow::Node node) {
-      node = uriDecoderCall().getArgument(0) or
-      node = any(HTTP::RedirectInvocation redirect).getUrlArgument().flow()
+      node = uriDecoderCall().getArgument(0)
     }
   }
 
