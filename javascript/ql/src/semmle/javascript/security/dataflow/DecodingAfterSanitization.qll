@@ -30,7 +30,7 @@ module DecodingAfterSanitization {
       any(DecodingKind kind).isDecoderInput(sink)
     }
   }
-
+/*
   class RegexpReplaceSanitization extends SanitizationKind {
     RegexpReplaceSanitization() { this = "RegexpReplaceSanitization" }
     
@@ -42,13 +42,13 @@ module DecodingAfterSanitization {
     override predicate isUnsafeDecoding(DecodingKind kind) {
       any()
     }
-  }
+  }*/
 
   private predicate isValidationCandidate(DataFlow::CallNode call) {
     exists(string name | name = call.getCalleeName() |
-      name.regexpMatch("(?i)(is|has|contains|endswith|startswith)(in|un)?(safe|valid|expected|whitelist|blacklist|correct|secure|loggedin|.*admin|owne[rd]|format|relative|absolute|path).*")
+      name.regexpMatch("(?i)(is|has|contains)(in|un)?(safe|valid|expected|whitelist|blacklist|correct|secure|loggedin|.*admin|owne[rd]|format|relative|absolute|path).*")
       or
-      name.regexpMatch("(?i)(check|validat|verif).*"))
+      name.regexpMatch("(?i)(check|validat|verif|startsWith|endsWith).*"))
   }
 
   private class ValidationCall extends DataFlow::CallNode, TaintTracking::SanitizerGuardNode {
