@@ -1,6 +1,9 @@
 import javascript
 
 module DecodingAfterSanitization {
+  /**
+   * A type of sanitization, such as HTML sanitization or filename sanitization.
+   */
   abstract class SanitizationKind extends string {
     bindingset[this]
     SanitizationKind() { any() }
@@ -9,6 +12,9 @@ module DecodingAfterSanitization {
     abstract predicate isUnsafeDecoding(DecodingKind kind);
   }
 
+  /**
+   * A kind of decoding, such as JSON parsing or URI decoding.
+   */
   abstract class DecodingKind extends string {
     bindingset[this]
     DecodingKind() { any() }
@@ -30,25 +36,68 @@ module DecodingAfterSanitization {
       any(DecodingKind kind).isDecoderInput(sink)
     }
   }
-/*
-  class RegexpReplaceSanitization extends SanitizationKind {
-    RegexpReplaceSanitization() { this = "RegexpReplaceSanitization" }
+
+  /**
+   * A sanitizer defined by a guard.
+   */
+  class GuardSanitization extends SanitizationKind {
+    GuardSanitization() { this = "GuardSanitization" }
     
     override predicate isSanitizer(DataFlow::Node sanitizer, DataFlow::Node output) {
-      sanitizer = output and
-      sanitizer.(DataFlow::MethodCallNode).getMethodName() = "replace"
+      sanitizer.(TaintTracking::SanitizerGuardNode).blocks(output)
     }
 
     override predicate isUnsafeDecoding(DecodingKind kind) {
       any()
     }
-  }*/
+  }
 
-  private predicate isValidationCandidate(DataFlow::CallNode call) {
-    exists(string name | name = call.getCalleeName() |
-      name.regexpMatch("(?i)(is|has|contains)(in|un)?(safe|valid|expected|whitelist|blacklist|correct|secure|loggedin|.*admin|owne[rd]|format|relative|absolute|path).*")
+  /**
+   * A guard of form `x.includes(y)` as a means to sanitize `x`.
+   */
+  class StringContainmentGuard extends TaintTracking::SanitizerGuardNode, DataFlow::MethodCallNode {
+    StringContainmentGuard() {
+      getMethodName() = "includes" or
+      getMethodName() = "startsWith" or
+      getMethodName() = "endsWith"
+    }
+
+    override predicate sanitizes(boolean outcome, Expr e) {
+      (outcome = false or outcome = true) and
+      e = getReceiver().asExpr()
+    }
+  }
+
+  /**
+   * A guard of form `x.indexOf(y) == z` as a means to sanitize `x`. 
+   */
+  class StringIndexOfGuard extends TaintTracking::SanitizerGuardNode, DataFlow::Node {
+    DataFlow::MethodCallNode indexOf;
+
+    StringIndexOfGuard() {
+      indexOf.getMethodName() = "indexOf" and
+      indexOf.flowsToExpr(this.asExpr().(Comparison).getAnOperand())
+    }
+
+    override predicate sanitizes(boolean outcome, Expr e) {
+      (outcome = false or outcome = true) and
+      e = indexOf.getReceiver().asExpr()
+    }
+  }
+
+  /** Converts a camel-cased name such as `getUrlPath` to a space-separated string, like `get url path`. */
+  bindingset[arg]
+  private string getWords(string arg) {
+    result = arg.regexpReplaceAll("([a-z])([A-Z])", "$1 $2").replaceAll("_", " ").toLowerCase()
+  }
+
+  predicate isValidationCandidate(DataFlow::CallNode call) {
+    exists(string name | name = getWords(call.getCalleeName()) |
+      name.regexpMatch("(?i).*\\b(is|has|contains)\\b.*\\b(in|un)?(safe|valid|expected|correct|secure).*")
       or
-      name.regexpMatch("(?i)(check|validat|verif|startsWith|endsWith).*"))
+      name.regexpMatch("(?i).*\\b(is|has|contains)\\b.*\\b(whitelist|blacklist|loggedin|relative|absolute|path|inside).*")
+      or
+      name.regexpMatch("(?i)(check|validat|verif|startsWith|endsWith|includes).*"))
   }
 
   private class ValidationCall extends DataFlow::CallNode, TaintTracking::SanitizerGuardNode {
@@ -62,18 +111,9 @@ module DecodingAfterSanitization {
     }
   }
 
-  class GuardSanitization extends SanitizationKind {
-    GuardSanitization() { this = "GuardSanitization" }
-    
-    override predicate isSanitizer(DataFlow::Node sanitizer, DataFlow::Node output) {
-      sanitizer.(TaintTracking::SanitizerGuardNode).blocks(output)
-    }
-
-    override predicate isUnsafeDecoding(DecodingKind kind) {
-      any()
-    }
-  }
-
+  /**
+   * Sanitization by calling an HTML sanitizier.
+   */
   class HtmlSanitization extends SanitizationKind {
     HtmlSanitization() { this = "HtmlSanitization" }
     
@@ -87,6 +127,9 @@ module DecodingAfterSanitization {
     }
   }
 
+  /**
+   * Sanitization by calling a filename sanitizer.
+   */
   class FilenameSanitization extends SanitizationKind {
     FilenameSanitization() { this = "FilenameSanitization" }
 
@@ -100,6 +143,9 @@ module DecodingAfterSanitization {
     }
   }
 
+  /**
+   * Decoding by calling a JSON parser.
+   */
   private class JsonParsing extends DecodingKind {
     JsonParsing() { this = "JsonParsing" }
     
@@ -131,6 +177,9 @@ module DecodingAfterSanitization {
       result = DataFlow::moduleMember("querystring", "decode"))
   }
 
+  /**
+   * Decoding by calling a URI decoder.
+   */
   class UriDecoding extends DecodingKind {
     UriDecoding() { this = "UriDecoding" }
     
@@ -159,6 +208,9 @@ module DecodingAfterSanitization {
       callee = DataFlow::moduleMember("urlsafe-base64", "decode"))
   }
 
+  /**
+   * Decoding by calling a base64 decoder.
+   */
   class Base64Decoding extends DecodingKind {
     Base64Decoding() { this = "Base64Decoding" }
     
