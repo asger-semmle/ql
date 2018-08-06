@@ -143,6 +143,30 @@ module DecodingAfterSanitization {
     }
   }
 
+  private DataFlow::CallNode sqlSanitizer() {
+    exists (DataFlow::SourceNode callee | result = callee.getACall() |
+      callee = DataFlow::moduleMember("sqlstring", "escape") or
+      callee = DataFlow::moduleMember("sqlstring", "escapeId") or
+      callee = DataFlow::moduleMember("mysql", "escape") or
+      callee = DataFlow::moduleMember("mysql", "escapeId"))
+  }
+
+  /**
+   * Sanitization by calling a SQL sanitizer.
+   */
+  class SqlSanitization extends SanitizationKind {
+    SqlSanitization() { this = "SqlSanitization" }
+
+    override predicate isSanitizer(DataFlow::Node sanitizer, DataFlow::Node output) {
+      sanitizer = output and
+      sanitizer = sqlSanitizer()
+    }
+
+    override predicate isUnsafeDecoding(DecodingKind kind) {
+      any()
+    }
+  }
+
   /**
    * Decoding by calling a JSON parser.
    */
