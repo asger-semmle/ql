@@ -1,0 +1,33 @@
+<!DOCTYPE qhelp PUBLIC
+  "-//Semmle//qhelp//EN"
+  "qhelp.dtd">
+<qhelp>
+
+<overview>
+<p>
+lorem ipsum
+</p>
+</overview>
+
+<recommendation>
+<p>
+lorem ipsum
+</p>
+</recommendation>
+
+<example>
+<p>
+lorem ipsum
+</p>
+<p>
+lorem ipsum
+</p>
+<p>
+lorem ipsum
+</p>
+</example>
+
+<references>
+<li>lorem ipsum</li>
+</references>
+</qhelp>
