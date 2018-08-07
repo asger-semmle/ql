@@ -96,6 +96,15 @@ module DecodingAfterSanitization {
       none()
   }
 
+  predicate isStringWithUnsafeChars(Expr e) {
+    e.getStringValue().regexpMatch(".*[.:;/\\'\"`<>].*")
+  }
+
+  predicate isRegExpWithUnsafeChars(RegExpLiteral literal) {
+    literal.isGlobal() and // "Improper sanitization" query will check for missing global flag, so require it here.
+    literal.getRoot().getAChild*().(RegExpConstant).getValue().regexpMatch("[.:;/\\'\"`<>]")
+  }
+
   /**
    * A guard of form `x.indexOf(y) == z` as a means to sanitize `x`. 
    */
@@ -104,9 +113,9 @@ module DecodingAfterSanitization {
     boolean polarity;
 
     StringIndexOfGuard() {
+      indexOf.getMethodName() = "indexOf" and
+      isStringWithUnsafeChars(indexOf.getArgument(0).asExpr()) and
       exists (Comparison compare, Expr arg, string op, int value | this = compare.flow() |
-        indexOf.getMethodName() = "indexOf" and
-        indexOf.getArgument(0).asExpr().getStringValue().regexpMatch(".*[.:;/\\'\"`<>].*") and
         indexOf.flowsToExpr(arg) and
         getIntComparison(compare, arg, op, value) and
 
@@ -135,6 +144,30 @@ module DecodingAfterSanitization {
     override predicate sanitizes(boolean outcome, Expr e) {
       outcome = polarity and
       e = indexOf.getReceiver().asExpr()
+    }
+  }
+
+  class RegexpReplaceSanitizer extends DataFlow::MethodCallNode {
+    RegexpReplaceSanitizer() {
+      getMethodName() = "replace" and
+      exists (Expr arg | arg = getArgument(0).asExpr() |
+        isStringWithUnsafeChars(arg) or
+        isRegExpWithUnsafeChars(arg))
+    }
+  }
+
+  class RegExpReplaceSanitization extends SanitizationKind {
+    RegExpReplaceSanitization() {
+      this = "RegExpReplaceSanitization"
+    }
+
+    override predicate isSanitizer(DataFlow::Node sanitizer, DataFlow::Node output) {
+      sanitizer = output and
+      sanitizer instanceof RegexpReplaceSanitizer
+    }
+
+    override predicate isUnsafeDecoding(DecodingKind kind) {
+      any()
     }
   }
 
