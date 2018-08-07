@@ -53,7 +53,10 @@ module DecodingAfterSanitization {
   }
 
   /**
-   * A guard of form `x.includes(y)` as a means to sanitize `x`.
+   * A guard of form `x.includes(y)` as a means to sanitize `x` in the false case.
+   *
+   * Decoding typically not remove the presence of a dangerous substring, so the 'then'
+   * case should not be considered sanitized.
    */
   class StringContainmentGuard extends TaintTracking::SanitizerGuardNode, DataFlow::MethodCallNode {
     StringContainmentGuard() {
@@ -63,9 +66,34 @@ module DecodingAfterSanitization {
     }
 
     override predicate sanitizes(boolean outcome, Expr e) {
-      (outcome = false or outcome = true) and
+      outcome = false and
       e = getReceiver().asExpr()
     }
+  }
+
+  predicate getIntComparison(Comparison compare, Expr arg, string operator, int value) {
+    arg = compare.getLeftOperand() and
+    operator = compare.getOperator() and
+    value = compare.getRightOperand().getIntValue()
+    or
+    arg = compare.getRightOperand() and
+    operator = commute(compare.getOperator()) and
+    value = compare.getLeftOperand().getIntValue()
+  }
+
+  string commute(string operator) {
+    if operator = "==" or operator = "===" or operator = "!=" or operator = "!==" then
+      result = operator
+    else if operator = "<" then
+      result = ">"
+    else if operator = "<=" then
+      result = ">="
+    else if operator = ">" then
+      result = "<"
+    else if operator = ">=" then
+      result = "<="
+    else
+      none()
   }
 
   /**
@@ -73,14 +101,39 @@ module DecodingAfterSanitization {
    */
   class StringIndexOfGuard extends TaintTracking::SanitizerGuardNode, DataFlow::Node {
     DataFlow::MethodCallNode indexOf;
+    boolean polarity;
 
     StringIndexOfGuard() {
-      indexOf.getMethodName() = "indexOf" and
-      indexOf.flowsToExpr(this.asExpr().(Comparison).getAnOperand())
+      exists (Comparison compare, Expr arg, string op, int value | this = compare.flow() |
+        indexOf.getMethodName() = "indexOf" and
+        indexOf.getArgument(0).asExpr().getStringValue().regexpMatch(".*[.:;/\\'\"`<>].*") and
+        indexOf.flowsToExpr(arg) and
+        getIntComparison(compare, arg, op, value) and
+
+        // The comparison can either check for the absence of a substring, or the presence of a substring.
+        // In the 'absent' case, we consider the value sanitized, i.e. it should not be decoded because
+        // that could reintroduce the dangerous substring.
+        (
+          value = -1 and
+          polarity = compare.(EqualityTest).getPolarity()
+          or
+
+          value >= 0 and
+          polarity = compare.(EqualityTest).getPolarity().booleanNot()
+          or
+
+          if op = "<" and -1 < value or
+             op = "<=" and -1 <= value or
+             op = ">" and -1 > value or
+             op = ">=" and -1 >= value then
+             polarity = true
+           else
+             polarity = false
+        ))
     }
 
     override predicate sanitizes(boolean outcome, Expr e) {
-      (outcome = false or outcome = true) and
+      outcome = polarity and
       e = indexOf.getReceiver().asExpr()
     }
   }
