@@ -190,19 +190,30 @@ module DecodingAfterSanitization {
     }
   }
 
-  /** Converts a camel-cased name such as `getUrlPath` to a space-separated string, like `get url path`. */
+  /**
+   * Converts a string to kebab-case. That is, all letters become lower-case
+   * and words are separated by dashes (`-`).
+   *
+   * For example, `getUrlPath`, `GetUrlPath`, and `GET_URL_PATH` all map to `get-url-path`.
+   */
   bindingset[arg]
-  private string getWords(string arg) {
-    result = arg.regexpReplaceAll("([a-z])([A-Z])", "$1 $2").replaceAll("_", " ").toLowerCase()
+  private string toKebabCase(string arg) {
+    result = arg
+      .replaceAll("$", "")
+      .replaceAll("_", "-")
+      .regexpReplaceAll("([a-z])([A-Z])", "$1-$2") // getFoo => get-Foo
+      .regexpReplaceAll("([A-Z])([A-Z][a-z])", "$1-$2") // HTTPServer => HTTP-Server
+      .toLowerCase()
   }
 
   predicate isValidationCandidate(DataFlow::CallNode call) {
-    exists(string name | name = getWords(call.getCalleeName()) |
-      name.regexpMatch("(?i).*\\b(is|has|contains)\\b.*\\b(in|un)?(safe|valid|expected|correct|secure).*")
-      or
-      name.regexpMatch("(?i).*\\b(is|has|contains)\\b.*\\b(whitelist|blacklist|loggedin|relative|absolute|path|inside).*")
-      or
-      name.regexpMatch("(?i)(check|validat|verif|startsWith|endsWith|includes).*"))
+    exists(string callee | callee = toKebabCase(call.getCalleeName()) |
+      callee.regexpMatch("(?i).*\\b(path|domain|host|html|script|safe|secure)\\b.*") and
+      (
+        callee.regexpMatch("(?i).*\\b(is|has|contains)\\b.*\\b(in|un)?(safe|valid|expected|correct|secure|relative|absolute|blacklist|whitelist).*")
+        or
+        callee.regexpMatch("(?i)(check|validat|verif|startsWith|endsWith|includes).*")
+      ))
   }
 
   private class ValidationCall extends DataFlow::CallNode, TaintTracking::SanitizerGuardNode {
