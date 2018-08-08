@@ -96,13 +96,32 @@ module DecodingAfterSanitization {
       none()
   }
 
-  predicate isStringWithUnsafeChars(Expr e) {
-    e.getStringValue().regexpMatch(".*[.:;/\\'\"`<>].*")
+  predicate isSanitizingSearchString(Expr e) {
+    exists (string value | value = e.getStringValue() |
+      value.regexpMatch("[./\\\\]+") and value != "." or // Search for relative/absolute path, such as `../`
+      value.regexpMatch("</?[a-zA-Z]+/?>?") or // Search for specific HTML tag, such as `<script`
+      value.regexpMatch("[<>`'\"]") // Search for single meta character
+    )
   }
 
-  predicate isRegExpWithUnsafeChars(RegExpLiteral literal) {
+  predicate isSanitizingRegExp(RegExpLiteral literal) {
     literal.isGlobal() and // "Improper sanitization" query will check for missing global flag, so require it here.
-    literal.getRoot().getAChild*().(RegExpConstant).getValue().regexpMatch("[.:;/\\'\"`<>]")
+    (
+      // Search for relative/absoute path.
+      forex(RegExpConstant const | const = literal.getRoot().getAChild*() | const.getValue().regexpMatch("[./\\\\]"))
+      and not literal.getRoot().(RegExpConstant).getValue() = "."
+      or
+      // Search for specific HTML element (any global regexp starting with `<` at the top-level term)
+      exists (RegExpSequence seq | seq = literal.getRoot() |
+        seq.getChild(0).(RegExpConstant).getValue() = "<")
+      or
+      // Search for single meta character
+      exists (RegExpCharacterClass cls | cls = literal.getRoot() |
+        not cls.isInverted() and
+        cls.getAChild().(RegExpConstant).getValue().regexpMatch("[<>`'\"]") and
+        forall(RegExpTerm term | term = cls.getAChild() |
+          term.(RegExpConstant).getValue().regexpMatch("[<>`'\"&/:]")))
+    )
   }
 
   /**
@@ -114,7 +133,7 @@ module DecodingAfterSanitization {
 
     StringIndexOfGuard() {
       indexOf.getMethodName() = "indexOf" and
-      isStringWithUnsafeChars(indexOf.getArgument(0).asExpr()) and
+      isSanitizingSearchString(indexOf.getArgument(0).asExpr()) and
       exists (Comparison compare, Expr arg, string op, int value | this = compare.flow() |
         indexOf.flowsToExpr(arg) and
         getIntComparison(compare, arg, op, value) and
@@ -151,8 +170,8 @@ module DecodingAfterSanitization {
     RegexpReplaceSanitizer() {
       getMethodName() = "replace" and
       exists (Expr arg | arg = getArgument(0).asExpr() |
-        isStringWithUnsafeChars(arg) or
-        isRegExpWithUnsafeChars(arg))
+        isSanitizingSearchString(arg) or
+        isSanitizingRegExp(arg))
     }
   }
 
