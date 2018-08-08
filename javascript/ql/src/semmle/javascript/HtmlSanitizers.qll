@@ -39,7 +39,7 @@ private class DefaultHtmlSanitizerCall extends HtmlSanitizerCall {
     // Match home-made sanitizers by name.
     exists (string calleeName | calleeName = getCalleeName() |
       calleeName.regexpMatch("(?i).*html.*") and
-      calleeName.regexpMatch("(?i).*(saniti[sz]|escape|strip).*"))
+      calleeName.regexpMatch("(?i).*(?<!un)(saniti[sz]|escape|strip).*"))
   }
 
   override DataFlow::Node getInput() { result = getArgument(0) }
