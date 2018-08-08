@@ -208,7 +208,7 @@ module DecodingAfterSanitization {
 
   predicate isValidationCandidate(DataFlow::CallNode call) {
     exists(string callee | callee = toKebabCase(call.getCalleeName()) |
-      callee.regexpMatch("(?i).*\\b(path|domain|host|html|script|safe|secure)\\b.*") and
+      callee.regexpMatch("(?i).*\\b(path|domain|host(name)?|html|script|(un)?safe|(in)?secure)\\b.*") and
       (
         callee.regexpMatch("(?i).*\\b(is|has|contains)\\b.*\\b(in|un)?(safe|valid|expected|correct|secure|relative|absolute|blacklist|whitelist).*")
         or
