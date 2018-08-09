@@ -126,6 +126,13 @@ module DecodingAfterSanitization {
     )
   }
 
+  predicate isSanitizingReplacementExpr(Expr e) {
+    e.getStringValue() = "" or
+    e.getStringValue() = "\\$1" or
+    e.getStringValue().regexpMatch("\\['\"]") or
+    e.getStringValue().regexpMatch("(%[a-fA-F0-9]+|&#?[a-zA-Z0-9]+;|\\\\u[a-fA-F0-9]+)+")
+  }
+
   /**
    * A guard of form `x.indexOf(y) == z` as a means to sanitize `x`. 
    */
@@ -171,9 +178,10 @@ module DecodingAfterSanitization {
   class RegexpReplaceSanitizer extends DataFlow::MethodCallNode {
     RegexpReplaceSanitizer() {
       getMethodName() = "replace" and
-      exists (Expr arg | arg = getArgument(0).asExpr() |
-        isSanitizingSearchString(arg) or
-        isSanitizingRegExp(arg))
+      exists (Expr search | search = getArgument(0).asExpr() |
+        isSanitizingSearchString(search) or
+        isSanitizingRegExp(search)) and
+      isSanitizingReplacementExpr(getArgument(1).asExpr())
     }
   }
 
