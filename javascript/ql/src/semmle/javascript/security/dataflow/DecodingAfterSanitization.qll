@@ -60,9 +60,11 @@ module DecodingAfterSanitization {
    */
   class StringContainmentGuard extends TaintTracking::SanitizerGuardNode, DataFlow::MethodCallNode {
     StringContainmentGuard() {
-      getMethodName() = "includes" or
-      getMethodName() = "startsWith" or
-      getMethodName() = "endsWith"
+      exists (string name | name = getMethodName() |
+        name = "includes" or
+        name = "startsWith" or
+        name = "endsWith") and
+      isSanitizingSearchString(getArgument(0).asExpr())
     }
 
     override predicate sanitizes(boolean outcome, Expr e) {
