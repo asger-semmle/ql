@@ -1,0 +1,16 @@
+| tst.js:3:11:3:19 | express() | last-child | tst.js:25:1:25:31 | app.get ... are(4)) |
+| tst.js:5:31:5:33 | app | last-child | tst.js:6:3:6:33 | app.get ... are(1)) |
+| tst.js:6:3:6:33 | app.get ... are(1)) | last-child | tst.js:6:16:6:32 | makeMiddleware(1) |
+| tst.js:10:3:10:33 | app.get ... are(2)) | last-child | tst.js:10:16:10:32 | makeMiddleware(2) |
+| tst.js:14:16:14:31 | express.Router() | last-child | tst.js:15:3:15:36 | router. ... are(3)) |
+| tst.js:15:3:15:36 | router. ... are(3)) | last-child | tst.js:15:19:15:35 | makeMiddleware(3) |
+| tst.js:19:1:19:31 | app.get ... are(0)) | last-child | tst.js:19:14:19:30 | makeMiddleware(0) |
+| tst.js:21:1:21:25 | setupTh ... nt(app) | last-child | tst.js:5:31:5:33 | app |
+| tst.js:21:1:21:25 | setupTh ... nt(app) | prev-sibling | tst.js:19:1:19:31 | app.get ... are(0)) |
+| tst.js:22:1:22:21 | setupTh ... pture() | last-child | tst.js:10:3:10:33 | app.get ... are(2)) |
+| tst.js:22:1:22:21 | setupTh ... pture() | prev-sibling | tst.js:21:1:21:25 | setupTh ... nt(app) |
+| tst.js:23:1:23:28 | app.get ... uter()) | last-child | tst.js:23:14:23:27 | returnRouter() |
+| tst.js:23:1:23:28 | app.get ... uter()) | prev-sibling | tst.js:22:1:22:21 | setupTh ... pture() |
+| tst.js:23:14:23:27 | returnRouter() | last-child | tst.js:14:16:14:31 | express.Router() |
+| tst.js:25:1:25:31 | app.get ... are(4)) | last-child | tst.js:25:14:25:30 | makeMiddleware(4) |
+| tst.js:25:1:25:31 | app.get ... are(4)) | prev-sibling | tst.js:23:1:23:28 | app.get ... uter()) |

@@ -161,6 +161,13 @@ module Express {
      * Gets the setup call that registers this route handler.
      */
     RouteSetup getSetup() { result = setup }
+    
+    /**
+     * Gets the index of this route handler in list of handlers installed at its route setup.
+     */
+    int getIndex() {
+      result = index
+    }
 
     /**
      * Gets the function body of this handler, if it is defined locally.

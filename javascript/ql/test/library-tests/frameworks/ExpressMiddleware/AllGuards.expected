@@ -1,0 +1,56 @@
+| tst.js:6:3:6:33 | app.get ... are(1)) | tst.js:19:1:19:31 | app.get ... are(0)) |
+| tst.js:6:3:6:33 | app.get ... are(1)) | tst.js:19:14:19:30 | makeMiddleware(0) |
+| tst.js:6:16:6:32 | makeMiddleware(1) | tst.js:19:1:19:31 | app.get ... are(0)) |
+| tst.js:6:16:6:32 | makeMiddleware(1) | tst.js:19:14:19:30 | makeMiddleware(0) |
+| tst.js:10:3:10:33 | app.get ... are(2)) | tst.js:6:3:6:33 | app.get ... are(1)) |
+| tst.js:10:3:10:33 | app.get ... are(2)) | tst.js:6:16:6:32 | makeMiddleware(1) |
+| tst.js:10:3:10:33 | app.get ... are(2)) | tst.js:19:1:19:31 | app.get ... are(0)) |
+| tst.js:10:3:10:33 | app.get ... are(2)) | tst.js:19:14:19:30 | makeMiddleware(0) |
+| tst.js:10:16:10:32 | makeMiddleware(2) | tst.js:6:3:6:33 | app.get ... are(1)) |
+| tst.js:10:16:10:32 | makeMiddleware(2) | tst.js:6:16:6:32 | makeMiddleware(1) |
+| tst.js:10:16:10:32 | makeMiddleware(2) | tst.js:19:1:19:31 | app.get ... are(0)) |
+| tst.js:10:16:10:32 | makeMiddleware(2) | tst.js:19:14:19:30 | makeMiddleware(0) |
+| tst.js:15:3:15:36 | router. ... are(3)) | tst.js:6:3:6:33 | app.get ... are(1)) |
+| tst.js:15:3:15:36 | router. ... are(3)) | tst.js:6:16:6:32 | makeMiddleware(1) |
+| tst.js:15:3:15:36 | router. ... are(3)) | tst.js:10:3:10:33 | app.get ... are(2)) |
+| tst.js:15:3:15:36 | router. ... are(3)) | tst.js:10:16:10:32 | makeMiddleware(2) |
+| tst.js:15:3:15:36 | router. ... are(3)) | tst.js:19:1:19:31 | app.get ... are(0)) |
+| tst.js:15:3:15:36 | router. ... are(3)) | tst.js:19:14:19:30 | makeMiddleware(0) |
+| tst.js:15:19:15:35 | makeMiddleware(3) | tst.js:6:3:6:33 | app.get ... are(1)) |
+| tst.js:15:19:15:35 | makeMiddleware(3) | tst.js:6:16:6:32 | makeMiddleware(1) |
+| tst.js:15:19:15:35 | makeMiddleware(3) | tst.js:10:3:10:33 | app.get ... are(2)) |
+| tst.js:15:19:15:35 | makeMiddleware(3) | tst.js:10:16:10:32 | makeMiddleware(2) |
+| tst.js:15:19:15:35 | makeMiddleware(3) | tst.js:19:1:19:31 | app.get ... are(0)) |
+| tst.js:15:19:15:35 | makeMiddleware(3) | tst.js:19:14:19:30 | makeMiddleware(0) |
+| tst.js:23:1:23:28 | app.get ... uter()) | tst.js:6:3:6:33 | app.get ... are(1)) |
+| tst.js:23:1:23:28 | app.get ... uter()) | tst.js:6:16:6:32 | makeMiddleware(1) |
+| tst.js:23:1:23:28 | app.get ... uter()) | tst.js:10:3:10:33 | app.get ... are(2)) |
+| tst.js:23:1:23:28 | app.get ... uter()) | tst.js:10:16:10:32 | makeMiddleware(2) |
+| tst.js:23:1:23:28 | app.get ... uter()) | tst.js:19:1:19:31 | app.get ... are(0)) |
+| tst.js:23:1:23:28 | app.get ... uter()) | tst.js:19:14:19:30 | makeMiddleware(0) |
+| tst.js:23:14:23:27 | returnRouter() | tst.js:6:3:6:33 | app.get ... are(1)) |
+| tst.js:23:14:23:27 | returnRouter() | tst.js:6:16:6:32 | makeMiddleware(1) |
+| tst.js:23:14:23:27 | returnRouter() | tst.js:10:3:10:33 | app.get ... are(2)) |
+| tst.js:23:14:23:27 | returnRouter() | tst.js:10:16:10:32 | makeMiddleware(2) |
+| tst.js:23:14:23:27 | returnRouter() | tst.js:19:1:19:31 | app.get ... are(0)) |
+| tst.js:23:14:23:27 | returnRouter() | tst.js:19:14:19:30 | makeMiddleware(0) |
+| tst.js:25:1:25:31 | app.get ... are(4)) | tst.js:6:3:6:33 | app.get ... are(1)) |
+| tst.js:25:1:25:31 | app.get ... are(4)) | tst.js:6:16:6:32 | makeMiddleware(1) |
+| tst.js:25:1:25:31 | app.get ... are(4)) | tst.js:10:3:10:33 | app.get ... are(2)) |
+| tst.js:25:1:25:31 | app.get ... are(4)) | tst.js:10:16:10:32 | makeMiddleware(2) |
+| tst.js:25:1:25:31 | app.get ... are(4)) | tst.js:15:3:15:36 | router. ... are(3)) |
+| tst.js:25:1:25:31 | app.get ... are(4)) | tst.js:15:19:15:35 | makeMiddleware(3) |
+| tst.js:25:1:25:31 | app.get ... are(4)) | tst.js:19:1:19:31 | app.get ... are(0)) |
+| tst.js:25:1:25:31 | app.get ... are(4)) | tst.js:19:14:19:30 | makeMiddleware(0) |
+| tst.js:25:1:25:31 | app.get ... are(4)) | tst.js:23:1:23:28 | app.get ... uter()) |
+| tst.js:25:1:25:31 | app.get ... are(4)) | tst.js:23:14:23:27 | returnRouter() |
+| tst.js:25:14:25:30 | makeMiddleware(4) | tst.js:6:3:6:33 | app.get ... are(1)) |
+| tst.js:25:14:25:30 | makeMiddleware(4) | tst.js:6:16:6:32 | makeMiddleware(1) |
+| tst.js:25:14:25:30 | makeMiddleware(4) | tst.js:10:3:10:33 | app.get ... are(2)) |
+| tst.js:25:14:25:30 | makeMiddleware(4) | tst.js:10:16:10:32 | makeMiddleware(2) |
+| tst.js:25:14:25:30 | makeMiddleware(4) | tst.js:15:3:15:36 | router. ... are(3)) |
+| tst.js:25:14:25:30 | makeMiddleware(4) | tst.js:15:19:15:35 | makeMiddleware(3) |
+| tst.js:25:14:25:30 | makeMiddleware(4) | tst.js:19:1:19:31 | app.get ... are(0)) |
+| tst.js:25:14:25:30 | makeMiddleware(4) | tst.js:19:14:19:30 | makeMiddleware(0) |
+| tst.js:25:14:25:30 | makeMiddleware(4) | tst.js:23:1:23:28 | app.get ... uter()) |
+| tst.js:25:14:25:30 | makeMiddleware(4) | tst.js:23:14:23:27 | returnRouter() |
