@@ -213,12 +213,12 @@ public class TypeScriptASTConverter {
 	 */
 	private void extractTokensAndComments(JsonObject ast, List<Token> tokens, List<Comment> comments) {
 		for (JsonElement elt : ast.get("$tokens").getAsJsonArray()) {
-			JsonObject token = elt.getAsJsonObject();
-			String text = token.get("text").getAsString();
-			Position start = getPosition(token.get("tokenPos").getAsJsonArray(), true);
+			JsonArray token = elt.getAsJsonArray();
+			String text = token.get(2).getAsString();
+			Position start = getPosition(token.get(1).getAsJsonArray(), true);
 			Position end = advance(start, text);
 			SourceLocation loc = new SourceLocation(text, start, end);
-			String kind = metadata.getSyntaxKindName(token.get("kind").getAsInt());
+			String kind = metadata.getSyntaxKindName(token.get(0).getAsInt());
 			switch (kind) {
 			case "EndOfFileToken":
 				tokens.add(new Token(loc, Token.Type.EOF));

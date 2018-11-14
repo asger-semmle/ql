@@ -29,9 +29,9 @@ export interface AugmentedPos {
 }
 
 export interface Token {
-    kind: ts.SyntaxKind;
-    tokenPos: AugmentedPos;
-    text: string;
+    0: ts.SyntaxKind; // kind
+    1: AugmentedPos; // tokenPos
+    2: string; // text
 }
 
 function hasOwnProperty(o: object, p: string) {
@@ -132,11 +132,11 @@ export function augmentAst(ast: AugmentedSourceFile, code: string, project: Proj
             ++rescanEventIndex;
             nextRescanPosition = reScanEventPos[rescanEventIndex];
         }
-        ast.$tokens.push({
-            kind: tk,
-            tokenPos: augmentPos(scanner.getTokenPos()),
-            text: scanner.getTokenText(),
-        });
+        ast.$tokens.push([
+            tk,
+            augmentPos(scanner.getTokenPos()),
+            scanner.getTokenText(),
+        ]);
     } while (tk !== ts.SyntaxKind.EndOfFileToken);
 
     if (ast.parseDiagnostics) {
