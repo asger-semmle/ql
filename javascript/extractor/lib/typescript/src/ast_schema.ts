@@ -45,6 +45,17 @@ astNodeSchemas[ts.SyntaxKind.IndexSignature] = functionSchema;
 astNodeSchemas[ts.SyntaxKind.NumericLiteral] = ["text"];
 astNodeSchemas[ts.SyntaxKind.StringLiteral] = ["text"];
 
+let callSchema = [
+  "expression",
+  "arguments",
+  "typeArguments",
+  "$resolvedSignature",
+  "$overloadIndex",
+];
+
+astNodeSchemas[ts.SyntaxKind.CallExpression] = callSchema;
+astNodeSchemas[ts.SyntaxKind.NewExpression] = callSchema;
+
 // Prepend the base schema to every AST node-specific schema
 for (let i = 0; i < astNodeSchemas.length; ++i) {
   let schema = astNodeSchemas[i];
