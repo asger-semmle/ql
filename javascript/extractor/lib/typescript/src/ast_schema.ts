@@ -42,6 +42,9 @@ astNodeSchemas[ts.SyntaxKind.ConstructorType] = functionSchema;
 astNodeSchemas[ts.SyntaxKind.FunctionType] = functionSchema;
 astNodeSchemas[ts.SyntaxKind.IndexSignature] = functionSchema;
 
+astNodeSchemas[ts.SyntaxKind.NumericLiteral] = ["text"];
+astNodeSchemas[ts.SyntaxKind.StringLiteral] = ["text"];
+
 // Prepend the base schema to every AST node-specific schema
 for (let i = 0; i < astNodeSchemas.length; ++i) {
   let schema = astNodeSchemas[i];
