@@ -411,6 +411,7 @@ function handleGetMetadataCommand(command: GetMetadataCommand) {
         type: "metadata",
         nodeFlags: ts.NodeFlags,
         syntaxKinds: ts.SyntaxKind,
+        astNodeSchemas,
     }));
 }
 

@@ -1,23 +1,48 @@
-package com.semmle.js.parser;
+package com.semmle.ts.extractor;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
 public class ParserMetadata {
 	private JsonObject nodeFlags;
 	private JsonObject syntaxKinds;
+	private JsonArray astNodeSchemas;
 	private final Map<Integer, String> nodeFlagMap = new LinkedHashMap<>();
 	private final Map<Integer, String> syntaxKindMap = new LinkedHashMap<>();
+	private final Map<String, Integer>[] astNodeFieldMap;
 
-	ParserMetadata(JsonObject nodeFlags, JsonObject syntaxKinds) {
+	@SuppressWarnings("unchecked")
+	public ParserMetadata(JsonObject nodeFlags, JsonObject syntaxKinds, JsonArray astNodeSchemas) {
 		this.nodeFlags = nodeFlags;
 		this.syntaxKinds = syntaxKinds;
+		this.astNodeSchemas = astNodeSchemas;
 		makeEnumIdMap(nodeFlags, nodeFlagMap);
 		makeEnumIdMap(syntaxKinds, syntaxKindMap);
+
+		astNodeFieldMap = new Map[astNodeSchemas.size()];
+		makeAstNodeFieldMap();
+	}
+
+	/**
+	 * Builds the mapping from AST node field names to their field offsets.
+	 */
+	private void makeAstNodeFieldMap() {
+		for (int kind = 0; kind < astNodeSchemas.size(); ++kind) {
+			JsonElement elm = astNodeSchemas.get(kind);
+			if (elm instanceof JsonNull)
+				continue;
+			JsonArray array = elm.getAsJsonArray();
+			Map<String, Integer> map = astNodeFieldMap[kind] = new LinkedHashMap<String, Integer>();
+			for (int field = 0; field < array.size(); ++field) {
+				map.put(array.get(field).getAsString(), field);
+			}
+		}
 	}
 
 	/**
@@ -67,5 +92,27 @@ public class ParserMetadata {
 	 */
 	public String getNodeFlagName(int flag) {
 		return this.nodeFlagMap.get(flag);
+	}
+
+	/**
+	 * Returns the mapping from field names to field offsets for the given AST node
+	 * kind.
+	 */
+	public Map<String, Integer> getAstNodeFieldMap(int kind) {
+		return this.astNodeFieldMap[kind];
+	}
+
+	/**
+	 * Returns the offset of the given field name in the given AST node type.
+	 */
+	public int getAstNodeField(int kind, String fieldName) {
+		return this.astNodeFieldMap[kind].get(fieldName);
+	}
+
+	/**
+	 * Returns the name of the field at the given offset in the given AST node type.
+	 */
+	public String getAstNodeFieldName(int kind, int field) {
+		return this.astNodeSchemas.get(kind).getAsJsonArray().get(field).getAsString();
 	}
 }

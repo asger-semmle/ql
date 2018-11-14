@@ -145,6 +145,7 @@ import com.semmle.ts.ast.TypeAssertion;
 import com.semmle.ts.ast.TypeParameter;
 import com.semmle.ts.ast.TypeofTypeExpr;
 import com.semmle.ts.ast.UnionTypeExpr;
+import com.semmle.ts.extractor.ParserMetadata;
 import com.semmle.util.collections.CollectionUtil;
 
 /**

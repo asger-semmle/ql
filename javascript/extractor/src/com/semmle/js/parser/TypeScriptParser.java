@@ -21,6 +21,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.semmle.js.parser.JSParser.Result;
+import com.semmle.ts.extractor.ParserMetadata;
 import com.semmle.ts.extractor.TypeTable;
 import com.semmle.util.data.StringUtil;
 import com.semmle.util.data.UnitParser;
@@ -278,7 +279,8 @@ public class TypeScriptParser {
 		request.add("command", new JsonPrimitive("get-metadata"));
 		JsonObject response = talkToParserWrapper(request);
 		checkResponseType(response, "metadata");
-		metadata = new ParserMetadata(response.getAsJsonObject("nodeFlags"), response.getAsJsonObject("syntaxKinds"));
+		metadata = new ParserMetadata(response.getAsJsonObject("nodeFlags"), response.getAsJsonObject("syntaxKinds"),
+				response.getAsJsonArray("astNodeSchemas"));
 	}
 
 	/**
