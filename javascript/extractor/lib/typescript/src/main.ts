@@ -37,6 +37,7 @@ import * as readline from "readline";
 import * as ts from "./typescript";
 import * as ast_extractor from "./ast_extractor";
 import { astNodeSchemas } from "./ast_schema";
+import * as preorder_json from "./preorder_json";
 
 import { Project } from "./common";
 import { TypeTable } from "./type_table";
@@ -188,10 +189,7 @@ function extractFile(filename: string): string {
     // Get the AST and augment it.
     ast_extractor.augmentAst(ast, code, state.project);
 
-    return stringifyAST({
-        type: "ast",
-        ast,
-    });
+    return '{"type":"ast"}\n' + preorder_json.stringify(ast);
 }
 
 function prepareNextFile() {
@@ -211,7 +209,7 @@ function handleParseCommand(command: ParseCommand) {
     ++state.pendingFileIndex;
     let response = state.pendingResponse || extractFile(command.filename);
     state.pendingResponse = null;
-    process.stdout.write(response + "\n", () => {
+    process.stdout.write(response, () => {
         // Start working on the next file as soon as the old one is flushed.
         // Note that if we didn't wait for flushing, this would block the I/O
         // loop and delay flushing.

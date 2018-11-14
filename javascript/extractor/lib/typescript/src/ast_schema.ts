@@ -9,7 +9,7 @@ export let astNodeSchemas: string[][] = [];
 /**
  * Properties to extract from all AST nodes.
  */
-let baseSchema = [
+export let baseSchema = [
   "kind",
   "$pos",
   "$end",
@@ -56,6 +56,7 @@ let fieldSchema = [
   "type",
 ];
 
+astNodeSchemas[ts.SyntaxKind.Unknown] = [];
 astNodeSchemas[ts.SyntaxKind.AnyKeyword] = [];
 astNodeSchemas[ts.SyntaxKind.ArrayBindingPattern] = ["elements"];
 astNodeSchemas[ts.SyntaxKind.ArrayLiteralExpression] = ["elements"];
@@ -64,7 +65,7 @@ astNodeSchemas[ts.SyntaxKind.ArrowFunction] = functionSchema;
 astNodeSchemas[ts.SyntaxKind.AsExpression] = ["expression", "type"];
 astNodeSchemas[ts.SyntaxKind.AwaitExpression] = ["expression"];
 astNodeSchemas[ts.SyntaxKind.BinaryExpression] = ["left", "right", "operatorToken"];
-astNodeSchemas[ts.SyntaxKind.BindingElement] = ["name", "initializer", "dotDotDotToken"];
+astNodeSchemas[ts.SyntaxKind.BindingElement] = ["name", "initializer", "dotDotDotToken", "propertyName"];
 astNodeSchemas[ts.SyntaxKind.Block] = ["statements"];
 astNodeSchemas[ts.SyntaxKind.BooleanKeyword] = [];
 astNodeSchemas[ts.SyntaxKind.BreakStatement] = ["label"];
@@ -106,6 +107,7 @@ astNodeSchemas[ts.SyntaxKind.FunctionDeclaration] = functionSchema;
 astNodeSchemas[ts.SyntaxKind.FunctionExpression] = functionSchema;
 astNodeSchemas[ts.SyntaxKind.FunctionType] = functionSchema;
 astNodeSchemas[ts.SyntaxKind.GetAccessor] = functionSchema;
+astNodeSchemas[ts.SyntaxKind.HeritageClause] = ["types", "token"];
 astNodeSchemas[ts.SyntaxKind.Identifier] = ["text", "escapedText"];
 astNodeSchemas[ts.SyntaxKind.IfStatement] = ["expression", "thenStatement", "elseStatement"];
 astNodeSchemas[ts.SyntaxKind.ImportClause] = ["name", "namedBindings"];
@@ -120,6 +122,7 @@ astNodeSchemas[ts.SyntaxKind.InferType] = ["typeParameter"];
 astNodeSchemas[ts.SyntaxKind.InterfaceDeclaration] = ["name", "typeParameters", "members", "heritageClauses"];
 astNodeSchemas[ts.SyntaxKind.IntersectionType] = ["types"];
 astNodeSchemas[ts.SyntaxKind.JsxAttribute] = ["name", "initializer"];
+astNodeSchemas[ts.SyntaxKind.JsxAttributes] = ["properties"];
 astNodeSchemas[ts.SyntaxKind.JsxClosingElement] = ["tagName"];
 astNodeSchemas[ts.SyntaxKind.JsxClosingFragment] = [];
 astNodeSchemas[ts.SyntaxKind.JsxElement] = ["openingElement", "children", "closingElement"];
@@ -138,6 +141,8 @@ astNodeSchemas[ts.SyntaxKind.MethodDeclaration] = functionSchema;
 astNodeSchemas[ts.SyntaxKind.MethodSignature] = functionSchema;
 astNodeSchemas[ts.SyntaxKind.ModuleBlock] = ["statements"];
 astNodeSchemas[ts.SyntaxKind.ModuleDeclaration] = ["flags", "modifiers", "name", "body"];
+astNodeSchemas[ts.SyntaxKind.NamedImports] = ["elements"];
+astNodeSchemas[ts.SyntaxKind.NamedExports] = ["elements"];
 astNodeSchemas[ts.SyntaxKind.NamespaceExportDeclaration] = ["name"];
 astNodeSchemas[ts.SyntaxKind.NamespaceImport] = ["name"];
 astNodeSchemas[ts.SyntaxKind.NeverKeyword] = [];
@@ -181,6 +186,7 @@ astNodeSchemas[ts.SyntaxKind.TemplateExpression] = ["head", "templateSpans"];
 astNodeSchemas[ts.SyntaxKind.TemplateHead] = ["text"];
 astNodeSchemas[ts.SyntaxKind.TemplateMiddle] = ["text"];
 astNodeSchemas[ts.SyntaxKind.TemplateTail] = ["text"];
+astNodeSchemas[ts.SyntaxKind.TemplateSpan] = ["expression", "literal"];
 astNodeSchemas[ts.SyntaxKind.ThisKeyword] = [];
 astNodeSchemas[ts.SyntaxKind.ThisType] = [];
 astNodeSchemas[ts.SyntaxKind.ThrowStatement] = ["expression"];
@@ -207,6 +213,18 @@ astNodeSchemas[ts.SyntaxKind.VoidKeyword] = [];
 astNodeSchemas[ts.SyntaxKind.WhileStatement] = ["expression", "statement"];
 astNodeSchemas[ts.SyntaxKind.WithStatement] = ["expression", "statement"];
 astNodeSchemas[ts.SyntaxKind.YieldExpression] = ["expression", "asteriskToken"];
+
+/**
+ * Kinds for nodes that don't have a SyntaxKind.
+ *
+ * We set these kinds on non-AST nodes in the AST so they can be serialized
+ * by the same mechanism as the AST itself.
+ */
+export const enum ExtraNodeKind {
+  ParseDiagnostic = ts.SyntaxKind.Count + 1,
+}
+
+astNodeSchemas[ExtraNodeKind.ParseDiagnostic] = ["messageText"];
 
 // Prepend the base schema to every AST node-specific schema
 for (let i = 0; i < astNodeSchemas.length; ++i) {

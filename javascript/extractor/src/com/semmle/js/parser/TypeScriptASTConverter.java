@@ -6,11 +6,11 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import com.semmle.ts.extractor.json.JsonArray;
+import com.semmle.ts.extractor.json.JsonElement;
+import com.semmle.ts.extractor.json.JsonNull;
+import com.semmle.ts.extractor.json.JsonObject;
+import com.semmle.ts.extractor.json.JsonPrimitive;
 import com.semmle.jcorn.TokenType;
 import com.semmle.js.ast.ArrayExpression;
 import com.semmle.js.ast.ArrayPattern;
@@ -180,8 +180,8 @@ public class TypeScriptASTConverter {
 		List<ParseError> errors = new ArrayList<ParseError>();
 
 		// process parse diagnostics (i.e., syntax errors) reported by the TypeScript compiler
-		JsonArray parseDiagnostics = ast.get("parseDiagnostics").getAsJsonArray();
-		if (parseDiagnostics.size() > 0) {
+		JsonArray parseDiagnostics = ast.getAsJsonArray("parseDiagnostics");
+		if (parseDiagnostics != null && parseDiagnostics.size() > 0) {
 			for (JsonElement elt : parseDiagnostics) {
 				JsonObject parseDiagnostic = elt.getAsJsonObject();
 				String message = parseDiagnostic.get("messageText").getAsString();
@@ -737,7 +737,7 @@ public class TypeScriptASTConverter {
 		for (JsonElement elt : array.get("elements").getAsJsonArray()) {
 			JsonObject element = (JsonObject) elt;
 			SourceLocation eltLoc = getSourceLocation(element);
-			Expression convertedElt = convertChild(element, "name");
+			Expression convertedElt = hasKind(elt, "OmittedExpression") ? null : convertChild(element, "name");
 			if (hasChild(element, "initializer"))
 				convertedElt = new AssignmentPattern(eltLoc, "=", convertedElt, convertChild(element, "initializer"));
 			else if (hasChild(element, "dotDotDotToken"))
@@ -2298,7 +2298,7 @@ public class TypeScriptASTConverter {
 	private String getKind(JsonElement node) {
 		if (node instanceof JsonObject) {
 			JsonElement kind = ((JsonObject) node).get("kind");
-			if (kind instanceof JsonPrimitive && ((JsonPrimitive) kind).isNumber())
+			if (kind instanceof JsonPrimitive && ((JsonPrimitive) kind).isInt())
 				return metadata.getSyntaxKindName(kind.getAsInt());
 		}
 		return null;

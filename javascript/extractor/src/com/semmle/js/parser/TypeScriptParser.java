@@ -23,6 +23,7 @@ import com.google.gson.JsonPrimitive;
 import com.semmle.js.parser.JSParser.Result;
 import com.semmle.ts.extractor.ParserMetadata;
 import com.semmle.ts.extractor.TypeTable;
+import com.semmle.ts.extractor.json.PreorderJsonReader;
 import com.semmle.util.data.StringUtil;
 import com.semmle.util.data.UnitParser;
 import com.semmle.util.exception.CatastrophicError;
@@ -300,9 +301,10 @@ public class TypeScriptParser {
 		JsonObject response = talkToParserWrapper(request);
 		try {
 			checkResponseType(response, "ast");
-			JsonObject ast = response.get("ast").getAsJsonObject();
+			PreorderJsonReader preoderJsonReader = new PreorderJsonReader(fromParserWrapper, metadata);
+			com.semmle.ts.extractor.json.JsonObject ast = preoderJsonReader.read().getAsJsonObject();
 			return new TypeScriptASTConverter(metadata).convertAST(ast, source);
-		} catch (IllegalStateException e) {
+		} catch (IllegalStateException | IOException e) {
 			throw new CatastrophicError("TypeScript parser wrapper sent unexpected response: " +
 					response, e);
 		}

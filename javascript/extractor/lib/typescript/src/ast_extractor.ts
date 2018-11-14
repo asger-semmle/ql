@@ -1,5 +1,6 @@
 import * as ts from "./typescript";
 import { Project } from "./common";
+import { ExtraNodeKind } from "./ast_schema";
 
 /**
  * Interface that exposes some internal properties we rely on, as well as
@@ -141,7 +142,7 @@ export function augmentAst(ast: AugmentedSourceFile, code: string, project: Proj
 
     if (ast.parseDiagnostics) {
         ast.parseDiagnostics.forEach(d => {
-            delete d.file;
+            d.kind = ExtraNodeKind.ParseDiagnostic;
             d.$pos = augmentPos(d.start);
         });
     }
