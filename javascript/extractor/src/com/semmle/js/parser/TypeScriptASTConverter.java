@@ -184,10 +184,10 @@ public class TypeScriptASTConverter {
 			for (JsonElement elt : parseDiagnostics) {
 				JsonObject parseDiagnostic = elt.getAsJsonObject();
 				String message = parseDiagnostic.get("messageText").getAsString();
-				JsonObject pos = parseDiagnostic.get("$pos").getAsJsonObject();
-				int line = pos.get("line").getAsInt() + 1;
-				int column = pos.get("character").getAsInt();
-				int offset = pos.get("$offset").getAsInt();
+				JsonArray pos = parseDiagnostic.get("$pos").getAsJsonArray();
+				int line = pos.get(0).getAsInt() + 1;
+				int column = pos.get(1).getAsInt();
+				int offset = pos.get(2).getAsInt();
 				errors.add(new ParseError(message, line, column, offset));
 			}
 			return new Result(source, null, new ArrayList<>(), new ArrayList<>(), errors);
@@ -215,7 +215,7 @@ public class TypeScriptASTConverter {
 		for (JsonElement elt : ast.get("$tokens").getAsJsonArray()) {
 			JsonObject token = elt.getAsJsonObject();
 			String text = token.get("text").getAsString();
-			Position start = getPosition(token.get("tokenPos").getAsJsonObject(), true);
+			Position start = getPosition(token.get("tokenPos").getAsJsonArray(), true);
 			Position end = advance(start, text);
 			SourceLocation loc = new SourceLocation(text, start, end);
 			String kind = metadata.getSyntaxKindName(token.get("kind").getAsInt());
@@ -863,7 +863,7 @@ public class TypeScriptASTConverter {
 			} else {
 				superInterfaces = convertSuperInterfaceClause(supers);
 			}
-			afterHead = heritageClause.get("$end").getAsJsonObject().get("$offset").getAsInt();
+			afterHead = heritageClause.get("$end").getAsJsonArray().get(2).getAsInt();
 		}
 		if (superInterfaces == null) {
 			superInterfaces = new ArrayList<>();
@@ -2168,8 +2168,8 @@ public class TypeScriptASTConverter {
 	 * Get the source location of the given AST node.
 	 */
 	private SourceLocation getSourceLocation(JsonObject node) {
-		Position start = getPosition(node.get("$pos").getAsJsonObject(), true);
-		Position end = getPosition(node.get("$end").getAsJsonObject(), false);
+		Position start = getPosition(node.get("$pos").getAsJsonArray(), true);
+		Position end = getPosition(node.get("$end").getAsJsonArray(), false);
 		int startOffset = start.getOffset();
 		int endOffset = end.getOffset();
 		if (startOffset > endOffset)
@@ -2184,10 +2184,10 @@ public class TypeScriptASTConverter {
 	 * For start positions, we need to skip over whitespace, which is included in
 	 * the positions reported by the TypeScript compiler.
 	 */
-	private Position getPosition(JsonObject pos, boolean isStart) {
-		int line = pos.get("line").getAsInt() + 1;
-		int column = pos.get("character").getAsInt();
-		int offset = pos.get("$offset").getAsInt();
+	private Position getPosition(JsonArray pos, boolean isStart) {
+		int line = pos.get(0).getAsInt() + 1;
+		int column = pos.get(1).getAsInt();
+		int offset = pos.get(2).getAsInt();
 		if (isStart) {
 			while (offset < source.length() && Character.isWhitespace(source.charAt(offset)))
 				++offset;

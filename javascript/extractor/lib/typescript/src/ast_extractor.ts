@@ -12,8 +12,8 @@ export interface AugmentedSourceFile extends ts.SourceFile {
 }
 
 export interface AugmentedNode extends ts.Node {
-    $pos?: any;
-    $end?: any;
+    $pos?: AugmentedPos;
+    $end?: AugmentedPos;
     $declarationKind?: string;
     $type?: number;
     $symbol?: number;
@@ -21,8 +21,11 @@ export interface AugmentedNode extends ts.Node {
     $overloadIndex?: number;
 }
 
-export interface AugmentedPos extends ts.LineAndCharacter {
-    $offset?: number;
+export interface AugmentedPos {
+    0: number; // Line
+    1: number; // Character
+    2: number; // Offset
+    length: 3;
 }
 
 export interface Token {
@@ -75,9 +78,8 @@ export function augmentAst(ast: AugmentedSourceFile, code: string, project: Proj
             skipWhiteSpace.lastIndex = pos;
             pos += skipWhiteSpace.exec(code)[0].length;
         }
-        let posObject: AugmentedPos = ast.getLineAndCharacterOfPosition(pos);
-        posObject.$offset = pos;
-        return posObject;
+        let tsPosition: ts.LineAndCharacter = ast.getLineAndCharacterOfPosition(pos);
+        return [ tsPosition.line, tsPosition.character, pos ];
     }
 
     // Find the position of all tokens where the scanner requires parse-tree information.
