@@ -36,6 +36,7 @@ import * as pathlib from "path";
 import * as readline from "readline";
 import * as ts from "./typescript";
 import * as ast_extractor from "./ast_extractor";
+import { astNodeSchemas } from "./ast_schema";
 
 import { Project } from "./common";
 import { TypeTable } from "./type_table";
@@ -148,6 +149,18 @@ function stringifyAST(obj: any) {
     return JSON.stringify(obj, (k, v) => {
         if (isBlacklistedProperty(k)) {
             return undefined;
+        }
+        // If this is an AST node, only extract properties from its schema.
+        if (v != null && typeof v === "object" && "kind" in v) {
+            let kind = v.kind;
+            let schema = astNodeSchemas[kind];
+            if (schema != null) {
+                let replaced: any = {};
+                for (let prop of schema) {
+                    replaced[prop] = v[prop];
+                }
+                return replaced;
+            }
         }
         return v;
     });
