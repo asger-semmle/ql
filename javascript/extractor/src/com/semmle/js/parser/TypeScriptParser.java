@@ -90,6 +90,8 @@ public class TypeScriptParser {
 	private BufferedWriter toParserWrapper;
 	private BufferedReader fromParserWrapper;
 
+	private ParserMetadata metadata;
+
 	private String nodeJsVersionString;
 
 	/**
@@ -267,6 +269,19 @@ public class TypeScriptParser {
 	}
 
 	/**
+	 * Gets metadata from the parser-wrapper if it has not been initialized already.
+	 */
+	private void initMetadata() {
+		if (metadata != null)
+			return;
+		JsonObject request = new JsonObject();
+		request.add("command", new JsonPrimitive("get-metadata"));
+		JsonObject response = talkToParserWrapper(request);
+		checkResponseType(response, "metadata");
+		metadata = new ParserMetadata(response.getAsJsonObject("nodeFlags"), response.getAsJsonObject("syntaxKinds"));
+	}
+
+	/**
 	 * Returns the AST for a given source file.
 	 * <p>
 	 * Type information will be available if the file is part of a currently open
@@ -276,16 +291,15 @@ public class TypeScriptParser {
 	 * extracted.
 	 */
 	public Result parse(File sourceFile, String source) {
+		initMetadata();
 		JsonObject request = new JsonObject();
 		request.add("command", new JsonPrimitive("parse"));
 		request.add("filename", new JsonPrimitive(sourceFile.getAbsolutePath()));
 		JsonObject response = talkToParserWrapper(request);
 		try {
 			checkResponseType(response, "ast");
-			JsonObject nodeFlags = response.get("nodeFlags").getAsJsonObject();
-			JsonObject syntaxKinds = response.get("syntaxKinds").getAsJsonObject();
 			JsonObject ast = response.get("ast").getAsJsonObject();
-			return new TypeScriptASTConverter(nodeFlags, syntaxKinds).convertAST(ast, source);
+			return new TypeScriptASTConverter(metadata).convertAST(ast, source);
 		} catch (IllegalStateException e) {
 			throw new CatastrophicError("TypeScript parser wrapper sent unexpected response: " +
 					response, e);

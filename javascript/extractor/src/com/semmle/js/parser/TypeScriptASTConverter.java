@@ -2,9 +2,7 @@ package com.semmle.js.parser;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -158,12 +156,7 @@ import com.semmle.util.collections.CollectionUtil;
  */
 public class TypeScriptASTConverter {
 	private String source;
-	private final JsonObject nodeFlags;
-	private final JsonObject syntaxKinds;
-	private final Map<Integer, String> nodeFlagMap = new LinkedHashMap<>();
-	private final Map<Integer, String> syntaxKindMap = new LinkedHashMap<>();
-
-	private int syntaxKindExtends;
+	private final ParserMetadata metadata;
 
 	private final static Pattern LINE_TERMINATOR = Pattern.compile("\\n|\\r\\n|\\r|\\u2028|\\u2029");
 	private static final String WHITESPACE_CHAR = "(?:\\s|//.*|/\\*(?:[^*]|\\*(?!/))*\\*/)";
@@ -174,24 +167,8 @@ public class TypeScriptASTConverter {
 	private static final Pattern TYPEOF_START = Pattern.compile("^typeof" + WHITESPACE_CHAR + "+");
 	private static final Pattern WHITESPACE_END_PAREN = Pattern.compile("^" + WHITESPACE_CHAR + "*\\)");
 
-	TypeScriptASTConverter(JsonObject nodeFlags, JsonObject syntaxKinds) {
-		this.nodeFlags = nodeFlags;
-		this.syntaxKinds = syntaxKinds;
-		makeEnumIdMap(nodeFlags, nodeFlagMap);
-		makeEnumIdMap(syntaxKinds, syntaxKindMap);
-		this.syntaxKindExtends = getSyntaxKind("ExtendsKeyword");
-	}
-
-	/**
-	 * Builds a mapping from ID to name given a TypeScript enum object.
-	 */
-	private void makeEnumIdMap(JsonObject enumObject, Map<Integer, String> idToName) {
-		for (Map.Entry<String, JsonElement> entry : enumObject.entrySet()) {
-			JsonPrimitive prim = entry.getValue().getAsJsonPrimitive();
-			if (prim.isNumber() && !idToName.containsKey(prim.getAsInt())) {
-				idToName.put(prim.getAsInt(), entry.getKey());
-			}
-		}
+	TypeScriptASTConverter(ParserMetadata metadata) {
+		this.metadata = metadata;
 	}
 
 	/**
@@ -241,7 +218,7 @@ public class TypeScriptASTConverter {
 			Position start = getPosition(token.get("tokenPos").getAsJsonObject(), true);
 			Position end = advance(start, text);
 			SourceLocation loc = new SourceLocation(text, start, end);
-			String kind = getKind(token);
+			String kind = metadata.getSyntaxKindName(token.get("kind").getAsInt());
 			switch (kind) {
 			case "EndOfFileToken":
 				tokens.add(new Token(loc, Token.Type.EOF));
@@ -879,7 +856,7 @@ public class TypeScriptASTConverter {
 		for (JsonElement elt : getChildIterable(node, "heritageClauses")) {
 			JsonObject heritageClause = elt.getAsJsonObject();
 			JsonArray supers = heritageClause.get("types").getAsJsonArray();
-			if (heritageClause.get("token").getAsInt() == syntaxKindExtends) {
+			if (heritageClause.get("token").getAsInt() == metadata.getSyntaxKind("ExtendsKeyword")) {
 				if (supers.size() > 0) {
 					superClass = (Expression) convertNode(supers.get(0).getAsJsonObject());
 				}
@@ -1337,7 +1314,7 @@ public class TypeScriptASTConverter {
 		List<ITypeExpression> superInterfaces = null;
 		for (JsonElement elt : getChildIterable(node, "heritageClauses")) {
 			JsonObject heritageClause = elt.getAsJsonObject();
-			if (heritageClause.get("token").getAsInt() == syntaxKindExtends) {
+			if (heritageClause.get("token").getAsInt() == metadata.getSyntaxKind("ExtendsKeyword")) {
 				superInterfaces = convertSuperInterfaceClause(heritageClause.get("types").getAsJsonArray());
 				break;
 			}
@@ -1777,7 +1754,7 @@ public class TypeScriptASTConverter {
 
 	private String getOperator(JsonObject node) throws ParseError {
 		int operatorId = node.get("operator").getAsInt();
-		switch (syntaxKindMap.get(operatorId)) {
+		switch (metadata.getSyntaxKindName(operatorId)) {
 		case "PlusPlusToken":
 			return "++";
 		case "MinusMinusToken":
@@ -1964,7 +1941,7 @@ public class TypeScriptASTConverter {
 	}
 
 	private Node convertTypeOperator(JsonObject node, SourceLocation loc) throws ParseError {
-		String operator = syntaxKinds.get("" + node.get("operator").getAsInt()).getAsString();
+		String operator = metadata.getSyntaxKindName(node.get("operator").getAsInt());
 		if (operator.equals("KeyOfKeyword")) {
 			return new KeyofTypeExpr(loc, convertChildAsType(node, "type"));
 		}
@@ -2286,27 +2263,12 @@ public class TypeScriptASTConverter {
 	 * property and the <tt>ts.NodeFlags</tt> in enum.
 	 */
 	private boolean hasFlag(JsonObject node, String flagName) {
-		JsonElement flagDescriptor = this.nodeFlags.get(flagName);
-		if (flagDescriptor == null) {
-			throw new RuntimeException("Incompatible version of TypeScript installed. Missing node flag " + flagName);
-		}
-		int flagId = flagDescriptor.getAsInt();
+		int flagId = metadata.getNodeFlag(flagName);
 		JsonElement flags = node.get("flags");
 		if (flags instanceof JsonPrimitive) {
 			return (flags.getAsInt() & flagId) != 0;
 		}
 		return false;
-	}
-
-	/**
-	 * Gets the numeric value of the syntax kind enum with the given name.
-	 */
-	private int getSyntaxKind(String syntaxKind) {
-		JsonElement descriptor = this.syntaxKinds.get(syntaxKind);
-		if (descriptor == null) {
-			throw new RuntimeException("Incompatible version of TypeScript installed. Missing syntax kind " + syntaxKind);
-		}
-		return descriptor.getAsInt();
 	}
 
 	/**
@@ -2336,7 +2298,7 @@ public class TypeScriptASTConverter {
 		if (node instanceof JsonObject) {
 			JsonElement kind = ((JsonObject) node).get("kind");
 			if (kind instanceof JsonPrimitive && ((JsonPrimitive) kind).isNumber())
-				return syntaxKindMap.get(kind.getAsInt());
+				return metadata.getSyntaxKindName(kind.getAsInt());
 		}
 		return null;
 	}

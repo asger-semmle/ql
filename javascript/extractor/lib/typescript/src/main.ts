@@ -71,8 +71,12 @@ interface PrepareFilesCommand {
     command: "prepare-files";
     filenames: string[];
 }
+interface GetMetadataCommand {
+    command: "get-metadata";
+}
+
 type Command = ParseCommand | OpenProjectCommand | CloseProjectCommand
-    | GetTypeTableCommand | ResetCommand | QuitCommand | PrepareFilesCommand;
+    | GetTypeTableCommand | ResetCommand | QuitCommand | PrepareFilesCommand | GetMetadataCommand;
 
 /** The state to be shared between commands. */
 class State {
@@ -174,8 +178,6 @@ function extractFile(filename: string): string {
     return stringifyAST({
         type: "ast",
         ast,
-        nodeFlags: ts.NodeFlags,
-        syntaxKinds: ts.SyntaxKind
     });
 }
 
@@ -391,6 +393,14 @@ function handleGetTypeTableCommand(command: GetTypeTableCommand) {
     }));
 }
 
+function handleGetMetadataCommand(command: GetMetadataCommand) {
+    console.log(JSON.stringify({
+        type: "metadata",
+        nodeFlags: ts.NodeFlags,
+        syntaxKinds: ts.SyntaxKind,
+    }));
+}
+
 function handleResetCommand(command: ResetCommand) {
     reset();
     console.log(JSON.stringify({
@@ -449,6 +459,9 @@ function runReadLineInterface() {
             break;
         case "prepare-files":
             handlePrepareFilesCommand(req);
+            break;
+        case "get-metadata":
+            handleGetMetadataCommand(req);
             break;
         case "reset":
             handleResetCommand(req);
