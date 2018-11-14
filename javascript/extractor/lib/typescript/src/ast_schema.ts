@@ -56,6 +56,8 @@ let callSchema = [
 astNodeSchemas[ts.SyntaxKind.CallExpression] = callSchema;
 astNodeSchemas[ts.SyntaxKind.NewExpression] = callSchema;
 
+astNodeSchemas[ts.SyntaxKind.SourceFile] = ["statements", "parseDiagnostics", "$tokens"];
+
 // Prepend the base schema to every AST node-specific schema
 for (let i = 0; i < astNodeSchemas.length; ++i) {
   let schema = astNodeSchemas[i];
