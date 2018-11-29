@@ -7,6 +7,9 @@ import javascript
 module EffectTracking {
   private import semmle.javascript.dataflow.internal.FlowSteps as FlowSteps
 
+  /**
+   * A type of effect to be tracked flow-sensitively.
+   */
   abstract class Configuration extends string {
     bindingset[this]
     Configuration() { any() }
@@ -149,6 +152,9 @@ module EffectTracking {
     }
   }
 
+  /**
+   * Holds if `node` is the first node of its basic block.
+   */
   private predicate isStartOfBasicBlock(ControlFlowNode node) {
     exists (BasicBlock b | b.getFirstNode() = node)
   }

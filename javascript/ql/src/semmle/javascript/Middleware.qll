@@ -92,27 +92,13 @@ module Middleware {
     string getPath() {
       result = ""
     }
-
-    /**
-     * Normalizes a path so multiple paths can be joined by concatenation.
-     *
-     * In particular, this ensures we don't get duplicate `//` path separators.
-     */
-    bindingset[str]
-    private string normalizePath(string str) {
-      if str = "/" or str = "" then
-        result = ""
-      else if str = any(string s) + "/" then
-        result = str
-      else
-        result = str + "/"
-    }
-
+    
     /**
      * Gets the path handled by this node, relative to its parent.
      */
     private string getRelativePath() {
-      result = normalizePath(this.getPath())
+      // Normalize slashes to ensure paths can be concatenated cleanly
+      result = removeLeadingSlash(ensureTrailingSlash(this.getPath()))
       or
       not exists(this.getPath()) and
       result = ""
@@ -151,7 +137,8 @@ module Middleware {
      * Gets the request method matched by this router handler and its parents.
      */
     final string getAbsoluteRequestMethod() {
-      isRoot() and result = getRequestMethod()
+      isRoot() and
+      result = getRequestMethod()
       or
       result = intersectRequestMethodFilters(getParent().getRequestMethod(), getRequestMethod())
     }
@@ -198,6 +185,28 @@ module Middleware {
   }
 
   /**
+   * Gets `str` with a leading slash removed, if there was one.
+   */
+  bindingset[str]
+  private string removeLeadingSlash(string str) {
+    "/" + result = str
+    or
+    not str = "/" + any(string s) and
+    result = str
+  }
+
+  /**
+   * Gets `str` with a slash appended, if didn't already end with a slash. 
+   */
+  bindingset[str]
+  private string ensureTrailingSlash(string str) {
+    if str = any(string s) + "/" then
+      result = str
+    else
+      result = str + "/"
+  }
+
+  /**
    * A middleware node with an indexed list of children.
    *
    * For example, a route setup `app.get("/", handler1, handler2, ...)` has a list of
@@ -214,10 +223,16 @@ module Middleware {
      */
     final DataFlow::Node getAMiddleware() { result = getMiddleware(_) }
 
+    /**
+     * Gets the number of middleware functions installed at this point.
+     */
     final int getNumMiddleware() {
       result = count(getAMiddleware())
     }
 
+    /**
+     * Gets the last middleware function installed at this point.
+     */
     final DataFlow::Node getLastMiddleware() {
       result = getMiddleware(getNumMiddleware() - 1)
     }
