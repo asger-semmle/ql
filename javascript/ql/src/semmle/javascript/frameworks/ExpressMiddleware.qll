@@ -30,13 +30,3 @@ private class ExpressMiddlewareSetup extends Middleware::Setup {
     result = "*"
   }
 }
-
-private class ArrayRouteCombinator extends Middleware::RouteCombinator, DataFlow::ArrayCreationNode {
-  ArrayRouteCombinator() {
-    this.flowsTo(any(Middleware::Setup setup).getAMiddleware())
-  }
-
-  override DataFlow::Node getMiddleware(int n) {
-    result = getElement(n)
-  }
-}

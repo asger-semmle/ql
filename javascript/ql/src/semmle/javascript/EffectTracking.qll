@@ -142,6 +142,7 @@ module EffectTracking {
         exists (Function target |
           target = invoke.getACallee() and
           value.getContainer() != target and
+          value.getContainer() = invoke.getContainer() and
           result = getLastSideEffectInFunction(target, value) and
           calleeAlias = value)
       )

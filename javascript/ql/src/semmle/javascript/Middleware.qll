@@ -3,6 +3,7 @@
  */
 import javascript
 import semmle.javascript.EffectTracking
+import semmle.javascript.frameworks.ExpressMiddleware // imported from here to avoid empty recursion error
 
 module Middleware {
   /**
@@ -103,8 +104,12 @@ module Middleware {
       result = getParent().getAbsolutePath()
     }
     
-    final predicate isTree() {
+    final predicate isRoot() {
       not exists(getParent())
+    }
+    
+    final predicate isTree() {
+      isRoot()
       or
       strictcount(getParent()) = 1 and
       getParent().isTree()
@@ -234,6 +239,22 @@ module Middleware {
     }
   }
 
+  /**
+   * An array literal passed to a route setup.
+   */
+  class ArrayRouteCombinator extends Middleware::RouteCombinator, DataFlow::ArrayCreationNode {
+    ArrayRouteCombinator() {
+      this.flowsTo(any(Setup setup).getAMiddleware())
+    }
+  
+    override DataFlow::Node getMiddleware(int n) {
+      result = getElement(n)
+    }
+  }
+
+  /**
+   * A call to a function that contains middleware installations.
+   */
   class SubSetup extends Middleware::Node, DataFlow::InvokeNode {
     DataFlow::SourceNode router;
 
