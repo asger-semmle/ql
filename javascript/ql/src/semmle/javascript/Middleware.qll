@@ -31,44 +31,72 @@ module Middleware {
       result = getAstNode()
     }
 
+    /**
+     * Gets the local source of the router whose middleware stack is modeled by this node.
+     *
+     * For routers, this refers to the node itself.
+     *
+     * For setups that imperatively install route handlers on an existing router, this
+     * refers to the router that is being modified.
+     */
     abstract DataFlow::SourceNode getRouter();
-    
-    Setup getSetup() {
-      this = result
-      or
-      this = result.getAMiddleware()
-    }
 
+    /**
+     * Gets the last child of this node.
+     */
     abstract Node getLastChild();
-    
+
+    /**
+     * Gets the previous sibling of this node, that is, the router handler executing
+     * before this one.
+     *
+     * In general there can be multiple previous siblings, forming a sibling graph,
+     * but in practice there is rarely more than once.
+     */
     abstract Node getPreviousSibling();
-    
+
+    /**
+     * Gets the next sibling of this node, that is, the router handler executing
+     * after this one.
+     *
+     * In general there can be multiple next siblings, forming a sibling graph,
+     * but in practice there is rarely more than once.
+     */
     final Node getNextSibling() {
       this = result.getPreviousSibling()
     }
-    
+
+    /**
+     * Gets a child of this node, that is, a router handler that is executed
+     * as part of this route handler.
+     */
     final Node getAChild() {
       result = this.getLastChild().getPreviousSibling*()
     }
     
+    /**
+     * Gets the parent of this node, that is, the route handler that dispatches
+     * requests to this one.
+     */
     final Node getParent() {
       this = result.getAChild()
     }
 
     /**
-     * Holds if the requests routed to this middleware node are known to have gone through
-     * the `guard` middleware first.
+     * Gets the path matched by this route handler, relative to its parent.
+     *
+     * A route handler will reject a request not matching its path.
+     *
+     * Defaults to the empty string, meaning any request is accepted.
      */
-    final predicate isGuardedBy(Node guard) {
-      getParent*().getPreviousSibling+().getAChild*() = guard and
-      getAbsolutePath() = guard.getAbsolutePath() + any(string s) and
-      getSetup().handlesSameRequestMethodAs(guard.getSetup())
+    string getPath() {
+      result = ""
     }
-    
+
     /**
      * Normalizes a path so multiple paths can be joined by concatenation.
      *
-     * In particular, this ensures that non-empty paths end with a slash.
+     * In particular, this ensures we don't get duplicate `//` path separators.
      */
     bindingset[str]
     private string normalizePath(string str) {
@@ -84,12 +112,15 @@ module Middleware {
      * Gets the path handled by this node, relative to its parent.
      */
     private string getRelativePath() {
-      result = normalizePath(this.(Setup).getPath())
+      result = normalizePath(this.getPath())
       or
-      not exists(this.(Setup).getPath()) and
+      not exists(this.getPath()) and
       result = ""
     }
 
+    /**
+     * Gets the path handled by this node, relative to the root node.
+     */
     final string getAbsolutePath() {
       isTree() and
       (
@@ -103,86 +134,116 @@ module Middleware {
       not isTree() and
       result = getParent().getAbsolutePath()
     }
-    
+
+    /**
+     * Gets the request method matched by this route handler, or `*` if all
+     * request methods are matched.
+     *
+     * The route handler will reject requests whose request method does not match.
+     *
+     * Defaults to `*`.
+     */
+    string getRequestMethod() {
+      result = "*"
+    }
+
+    /**
+     * Gets the request method matched by this router handler and its parents.
+     */
+    final string getAbsoluteRequestMethod() {
+      isRoot() and result = getRequestMethod()
+      or
+      result = intersectRequestMethodFilters(getParent().getRequestMethod(), getRequestMethod())
+    }
+
+    /**
+     * Holds if this has no parent.
+     */
     final predicate isRoot() {
       not exists(getParent())
     }
-    
+
+    /**
+     * Holds if this is part of a tree-shaped middleware stack, which is the common case.
+     */
     final predicate isTree() {
       isRoot()
       or
       strictcount(getParent()) = 1 and
       getParent().isTree()
     }
+
+    /**
+     * Holds if this handler is preceded by `guard` in the middleware stack.
+     *
+     * That is, any request seen by this handler is known to have gone through `guard` first.
+     */
+    final predicate isGuardedBy(Node guard) {
+      getParent*().getPreviousSibling+().getAChild*() = guard and
+      getAbsolutePath() = guard.getAbsolutePath() + any(string s) and
+      exists(intersectRequestMethodFilters(getAbsoluteRequestMethod(), guard.getAbsoluteRequestMethod()))
+    }
   }
 
   /**
-   * An installation of one or more route handlers on a router.
-   *
-   * The router handler arguments are the children of this node.
+   * Gets the intersection of two request method filters.
    */
-  abstract class Setup extends Node {
+  bindingset[method1, method2]
+  private string intersectRequestMethodFilters(string method1, string method2) {
+    method1 = method2 and result = method1
+    or
+    method1 = "*" and result = method2
+    or
+    method2 = "*" and result = method1
+  }
+
+  /**
+   * A middleware node with an indexed list of children.
+   *
+   * For example, a route setup `app.get("/", handler1, handler2, ...)` has a list of
+   * children derived from its argument list.
+   */
+  private abstract class SequenceNode extends Node {
     /**
      * Gets the `n`th middleware function installed at this point.
      */
     abstract DataFlow::Node getMiddleware(int n);
 
     /**
-     * Gets the path handled by this route, if it can be determined.
-     */
-    abstract string getPath();
-
-    /**
-     * Gets the request method handled by this route, or "*" if all methods are handled.
-     */
-    abstract string getRequestMethod();
-  
-    /**
      * Gets any of the middleware functions installed at this point.
      */
     final DataFlow::Node getAMiddleware() { result = getMiddleware(_) }
-    
+
     final int getNumMiddleware() {
       result = count(getAMiddleware())
     }
-    
+
     final DataFlow::Node getLastMiddleware() {
       result = getMiddleware(getNumMiddleware() - 1)
-    }
-    
-    bindingset[other]
-    final predicate handlesSameRequestMethodAs(Setup other) {
-      getRequestMethod() = other.getRequestMethod() or
-      getRequestMethod() = "*" or
-      other.getRequestMethod() = "*"
     }
 
     override final Node getLastChild() {
       result = getMiddleware(getNumMiddleware() - 1)
     }
-
-    override final Node getPreviousSibling() {
-      result.getControlFlowNode() = any(SetupTracking tr).getLastSideEffect(getControlFlowNode().getAPredecessor(), getRouter())
-    }
   }
 
   /**
-   * An argument to a route setup, referring to a route handler.
+   * An argument in a sequence node.
    */
-  class SetupArgument extends Node {
-    Setup setup;
+  private class SequenceElement extends Node {
+    SequenceNode parent;
     int index;
 
-    SetupArgument() {
-      this = setup.getMiddleware(index)
+    SequenceElement() {
+      this = parent.getMiddleware(index)
     }
 
     override DataFlow::SourceNode getRouter() {
-      result = setup.getRouter()
+      result = parent.getRouter()
     }
     
     override Node getPreviousSibling() {
-      result = setup.getMiddleware(index - 1)
+      result = parent.getMiddleware(index - 1)
     }
     
     override Node getLastChild() {
@@ -196,11 +257,22 @@ module Middleware {
   }
 
   /**
+   * An installation of one or more route handlers on a router.
+   *
+   * The router handler arguments are the children of this node.
+   */
+  abstract class Setup extends SequenceNode {
+    override final Node getPreviousSibling() {
+      result.getControlFlowNode() = any(SetupTracking tr).getLastSideEffect(getControlFlowNode().getAPredecessor(), getRouter())
+    }
+  }
+
+  /**
    * A router, that is, a collection of route handlers with associated paths and request methods.
    */
   class Router extends Node {
     Router() {
-      this = any(Setup setup).getRouter()
+      this = any(Node node).getRouter()
     }
 
     override DataFlow::SourceNode getRouter() {
@@ -225,26 +297,22 @@ module Middleware {
    *
    * A route combinator is a `Setup` with themselves as the router.
    */
-  abstract class RouteCombinator extends Setup {
+  abstract class RouteCombinator extends SequenceNode {
     override DataFlow::SourceNode getRouter() {
       result = this
     }
 
-    override string getPath() {
-      result = ""
-    }
-
-    override string getRequestMethod() {
-      result = "*"
+    override Middleware::Node getPreviousSibling() {
+      none()
     }
   }
 
   /**
    * An array literal passed to a route setup.
    */
-  class ArrayRouteCombinator extends Middleware::RouteCombinator, DataFlow::ArrayCreationNode {
+  private class ArrayRouteCombinator extends Middleware::RouteCombinator, DataFlow::ArrayCreationNode {
     ArrayRouteCombinator() {
-      this.flowsTo(any(Setup setup).getAMiddleware())
+      this.flowsTo(any(Node node))
     }
   
     override DataFlow::Node getMiddleware(int n) {
