@@ -60,6 +60,7 @@ module EffectTracking {
         // Captured by nested function
         exists (Function target |
           target = invoke.getACallee() and
+          value.getContainer() = invoke.getContainer() and
           functionHasSideEffects(target, value))
       )
     }

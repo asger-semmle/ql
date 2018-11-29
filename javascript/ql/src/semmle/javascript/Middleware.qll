@@ -299,7 +299,7 @@ module Middleware {
     }
     
     override Node getLastChild() {
-      result.(Setup).getControlFlowNode() = any(SetupTracking tr).getLastSideEffect(this.getContainer().getExit(), this)
+      result.getControlFlowNode() = any(SetupTracking tr).getLastSideEffect(this.getContainer().getExit(), this)
     }
   }
 
