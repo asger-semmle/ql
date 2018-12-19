@@ -42,6 +42,7 @@ import semmle.javascript.SSA
 import semmle.javascript.StandardLibrary
 import semmle.javascript.Stmt
 import semmle.javascript.StringConcatenation
+import semmle.javascript.StartsWith
 import semmle.javascript.Templates
 import semmle.javascript.Tokens
 import semmle.javascript.TypeScript
