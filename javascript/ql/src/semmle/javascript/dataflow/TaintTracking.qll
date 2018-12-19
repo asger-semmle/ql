@@ -106,6 +106,16 @@ module TaintTracking {
     }
 
     /**
+     * Holds if the standard taint step from `pred` to `succ` should be omitted from this
+     * taint-tracking configuration.
+     *
+     * Unlike with `isSanitizer`, additional taint steps contributed by the the subclass are unaffected.
+     */
+    predicate isOmittedTaintStep(DataFlow::Node pred, DataFlow::Node succ) {
+      none()
+    }
+
+    /**
      * Holds if the additional taint propagation step from `pred` to `succ`
      * must be taken into account in the analysis.
      */
@@ -115,9 +125,13 @@ module TaintTracking {
 
     final
     override predicate isAdditionalFlowStep(DataFlow::Node pred, DataFlow::Node succ) {
-      isAdditionalTaintStep(pred, succ) or
-      pred = succ.(FlowTarget).getATaintSource() or
-      any(AdditionalTaintStep dts).step(pred, succ)
+      isAdditionalTaintStep(pred, succ)
+      or
+      pred = succ.(FlowTarget).getATaintSource() and
+      not isOmittedTaintStep(pred, succ)
+      or
+      any(AdditionalTaintStep dts).step(pred, succ) and
+      not isOmittedTaintStep(pred, succ)
     }
 
     final
