@@ -21,6 +21,23 @@ module TaintedPath {
    */
   abstract class Sanitizer extends DataFlow::Node { }
 
+  module Label {
+    /**
+     * Flow label for a relative Unix path that cannot contain `../` components internally,
+     * but may starts with such components.
+     */
+    class NormalizedRelativeUnixPath extends DataFlow::FlowLabel {
+      NormalizedRelativeUnixPath() {
+        this = "normalized-relative-unix-path"
+      }
+    }
+  }
+
+  /** Gets any flow label. */
+  private DataFlow::FlowLabel anyLabel() {
+    any()
+  }
+
   /**
    * A taint-tracking configuration for reasoning about tainted-path vulnerabilities.
    */
@@ -31,8 +48,9 @@ module TaintedPath {
       source instanceof Source
     }
 
-    override predicate isSink(DataFlow::Node sink) {
-      sink instanceof Sink
+    override predicate isSink(DataFlow::Node sink, DataFlow::FlowLabel label) {
+      sink instanceof Sink and
+      label = anyLabel()
     }
 
     override predicate isSanitizer(DataFlow::Node node) {
@@ -41,11 +59,86 @@ module TaintedPath {
     }
 
     override predicate isSanitizerGuard(TaintTracking::SanitizerGuardNode guard) {
-      guard instanceof StrongPathCheck
+      guard instanceof StrongPathCheck or
+      guard instanceof StartsWithSanitizer
     }
 
+    override predicate isAdditionalFlowStep(DataFlow::Node src, DataFlow::Node dst, DataFlow::FlowLabel srclabel, DataFlow::FlowLabel dstlabel) {
+      isTaintedPathStep(src, dst, srclabel, dstlabel)
+    }
+
+    override predicate isOmittedTaintStep(DataFlow::Node src, DataFlow::Node dst) {
+      isTaintedPathStep(src, dst, _, _)
+    }
+
+    /**
+     * Holds if we should include a step from `src -> dst` with labels `srclabel -> dstlabel`, and the
+     * standard taint step `src -> dst` should be suppresesd.
+     */
+    predicate isTaintedPathStep(DataFlow::Node src, DataFlow::Node dst,  DataFlow::FlowLabel srclabel, DataFlow::FlowLabel dstlabel) {
+      exists (NormalizingPathCall call |
+        src = call.getInput() and
+        dst = call.getOutput() and
+        srclabel = anyLabel() and
+        dstlabel instanceof Label::NormalizedRelativeUnixPath)
+    }
   }
 
+  /**
+   * A call that normalizes a path.
+   */
+  class NormalizingPathCall extends DataFlow::CallNode {
+    DataFlow::Node input;
+    DataFlow::Node output;
+
+    NormalizingPathCall() {
+      this = DataFlow::moduleMember("path", "normalize").getACall() and
+      input = getArgument(0) and
+      output = this
+    }
+
+    /**
+     * Gets the input path to be normalized.
+     */
+    DataFlow::Node getInput() {
+      result = input
+    }
+
+    /**
+     * Gets the normalized path.
+     */
+    DataFlow::Node getOutput() {
+      result = output
+    }
+  }
+
+  /**
+   * A check of form `x.startsWith("../")` or similar.
+   *
+   * This is relevant for paths that are known to be normalized.
+   */
+  class StartsWithSanitizer extends TaintTracking::LabeledSanitizerGuardNode {
+    StartsWithCheck startsWith;
+
+    StartsWithSanitizer() {
+      this = startsWith
+    }
+
+    override predicate sanitizes(boolean outcome, Expr e) {
+      // Sanitize in the false case for:
+      //   .startsWith(".")
+      //   .startsWith("..")
+      //   .startsWith("../")
+      startsWith.getSubstring().asExpr().getStringValue() + any(string s) = "../" and
+      outcome = startsWith.getPolarity().booleanNot() and
+      e = startsWith.getBaseString().asExpr()
+    }
+
+    override DataFlow::FlowLabel getALabel() {
+      result instanceof Label::NormalizedRelativeUnixPath
+    }
+  }
+  
   /**
    * A source of remote user input, considered as a flow source for
    * tainted-path vulnerabilities.
