@@ -101,10 +101,14 @@ module TaintedPath {
    * Holds if `check` evaluating to `outcome` is not sufficient to sanitize `path`.
    */
   predicate weakCheck(Expr check, boolean outcome, VarAccess path) {
-    // `path.startsWith`, `path.endsWith`, `fs.existsSync(path)`
+    // `path.startsWith` and equivalent
+    path = check.flow().(StartsWithCheck).getBaseString().asExpr() and
+    (outcome = true or outcome = false)
+    or
+    // `path.endsWith`, `fs.existsSync(path)`
     exists (Expr base, string m | check.(MethodCallExpr).calls(base, m) |
       path = base and
-      (m = "startsWith" or m = "endsWith")
+      m = "endsWith"
       or
       path = check.(MethodCallExpr).getArgument(0) and
       m.regexpMatch("exists(Sync)?")
