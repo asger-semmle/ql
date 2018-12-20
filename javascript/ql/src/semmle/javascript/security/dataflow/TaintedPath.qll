@@ -23,13 +23,63 @@ module TaintedPath {
 
   module Label {
     /**
-     * Flow label for a relative Unix path that cannot contain `../` components internally,
-     * but may starts with such components.
+     * String indicating if a path is normalized, that is, whether internal `../` components
+     * have been removed.
      */
-    class NormalizedRelativeUnixPath extends DataFlow::FlowLabel {
-      NormalizedRelativeUnixPath() {
-        this = "normalized-relative-unix-path"
+    class Normalization extends string {
+      Normalization() { this = "normalized" or this = "raw" }
+    }
+
+    /**
+     * String indicating if a path is relative or absolute.
+     */
+    class Relativeness extends string {
+      Relativeness() { this = "relative" or this = "absolute" }
+    }
+
+    /**
+     * A flow label representing a Unix path.
+     *
+     * There are currently four flow labels, representing the different combinations of
+     * normalization and absoluteness.
+     */
+    class UnixPath extends DataFlow::FlowLabel {
+      Normalization normalization;
+      Relativeness relativeness;
+
+      UnixPath() {
+        this = normalization + "-" + relativeness + "-unix-path"
       }
+
+      /** Gets a string indicating whether this path is normalized. */
+      Normalization getNormalization() { result = normalization }
+
+      /** Gets a string indicating whether this path is relative. */
+      Relativeness getRelativeness() { result = relativeness }
+
+      /** Holds if this path is normalized. */
+      predicate isNormalized() { normalization = "normalized" }
+
+      /** Holds if this path is relative. */
+      predicate isRelative() { relativeness = "relative" }
+
+      /** Gets the path label with normalized flag set to true. */
+      UnixPath normalize() {
+        result.isNormalized() and
+        result.getRelativeness() = this.getRelativeness()
+      }
+    }
+
+    /**
+     * Gets the possible Unix path labels corresponding to `label`.
+     *
+     * A unix path label is just mapped to itself, but `data` and `taint` are assumed
+     * to be fully user-controlled, and thus map to every possible unix path label.
+     */
+    UnixPath toUnixPath(DataFlow::FlowLabel label) {
+      result = label
+      or
+      label = DataFlow::FlowLabel::dataOrTaint()
     }
   }
 
@@ -60,7 +110,7 @@ module TaintedPath {
 
     override predicate isSanitizerGuard(TaintTracking::SanitizerGuardNode guard) {
       guard instanceof StrongPathCheck or
-      guard instanceof StartsWithSanitizer
+      guard instanceof StartsWithDotDotSanitizer
     }
 
     override predicate isAdditionalFlowStep(DataFlow::Node src, DataFlow::Node dst, DataFlow::FlowLabel srclabel, DataFlow::FlowLabel dstlabel) {
@@ -79,8 +129,8 @@ module TaintedPath {
       exists (NormalizingPathCall call |
         src = call.getInput() and
         dst = call.getOutput() and
-        srclabel = anyLabel() and
-        dstlabel instanceof Label::NormalizedRelativeUnixPath)
+        dstlabel = Label::toUnixPath(srclabel).normalize()
+      )
     }
   }
 
@@ -117,10 +167,10 @@ module TaintedPath {
    *
    * This is relevant for paths that are known to be normalized.
    */
-  class StartsWithSanitizer extends TaintTracking::LabeledSanitizerGuardNode {
+  class StartsWithDotDotSanitizer extends TaintTracking::LabeledSanitizerGuardNode {
     StartsWithCheck startsWith;
 
-    StartsWithSanitizer() {
+    StartsWithDotDotSanitizer() {
       this = startsWith
     }
 
@@ -134,11 +184,11 @@ module TaintedPath {
       e = startsWith.getBaseString().asExpr()
     }
 
-    override DataFlow::FlowLabel getALabel() {
-      result instanceof Label::NormalizedRelativeUnixPath
+    override Label::UnixPath getALabel() {
+      result.isNormalized() and result.isRelative()
     }
   }
-  
+
   /**
    * A source of remote user input, considered as a flow source for
    * tainted-path vulnerabilities.
