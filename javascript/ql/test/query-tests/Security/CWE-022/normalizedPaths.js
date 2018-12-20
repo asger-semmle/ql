@@ -43,10 +43,14 @@ var server = http.createServer(function(req, res) {
   if (!normalizedPath.startsWith("..") && !normalizedPath.startsWith("/"))
     res.write(fs.readFileSync(normalizedPath));
   
-  // GOOD: path cannot be interpreted as relative
-  if (!normalizedPath.startsWith(".."))
+  if (!normalizedPath.startsWith("..")) {
+    // GOOD: path cannot be interpreted as relative
     res.write(fs.readFileSync("./" + normalizedPath));
-  
+
+    // BAD: path can be absolute
+    res.write(fs.readFileSync(normalizedPath + "/index.html"));
+  }
+
   // GOOD: path cannot be interpreted as relative
   let normalizedRelativePath = pathModule.normalizePath("./" + path);
   if (!normalizedRelativePath.startsWith(".."))

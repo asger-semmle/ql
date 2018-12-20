@@ -176,12 +176,21 @@ module TaintedPath {
       // Prefixing a string with anything other than `/` makes it relative.
       // If the prefix does start with a `/`, the prefix is likely the intended root directory so `../` is the only
       // viable attack vector afterwards.
-      exists (DataFlow::Node operator, int n |
-        StringConcatenation::taintStep(src, dst, operator, n) and
+      exists (DataFlow::Node operator, int n | StringConcatenation::taintStep(src, dst, operator, n) |
         n > 0 and
         Label::toUnixPath(srclabel).canContainDotDotSlash() and
         dstlabel.isRelative() and   // The path may be absolute, but the attacker only controls a relative path in it.
         dstlabel.isNonNormalized()  // The ../ is no longer at the beginning of the string.
+        or
+        // use ordinary taint flow for the first operand
+        n = 0 and
+        (
+          srclabel != DataFlow::FlowLabel::data() and
+          dstlabel = srclabel
+          or
+          srclabel = DataFlow::FlowLabel::data() and
+          dstlabel = DataFlow::FlowLabel::taint()
+        )
       )
     }
   }
