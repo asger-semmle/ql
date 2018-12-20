@@ -18,7 +18,14 @@ import javascript
 import semmle.javascript.security.dataflow.TaintedPath::TaintedPath
 import DataFlow::PathGraph
 
+string getPathDescription(DataFlow::FlowLabel label) {
+  label = DataFlow::FlowLabel::dataOrTaint() and
+  result = "." // fully user-controlled, no further explanation needed
+  or
+  result =", which could be " + label.(Label::UnixPath).describe() + "."
+}
+
 from Configuration cfg, DataFlow::PathNode source, DataFlow::PathNode sink
 where cfg.hasFlowPath(source, sink)
-select sink.getNode(), source, sink, "This path depends on $@.",
+select sink.getNode(), source, sink, "This path depends on $@" + getPathDescription(sink.getEndLabel()),
        source.getNode(), "a user-provided value"

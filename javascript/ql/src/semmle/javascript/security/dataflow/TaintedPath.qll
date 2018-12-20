@@ -74,6 +74,17 @@ module TaintedPath {
         result.isNormalized() and
         result.getRelativeness() = this.getRelativeness()
       }
+
+      /**
+       * Gets an uncapitalized description of this path, such as "an absolute path".
+       */
+      string describe() {
+        isRelative() and
+        result = "a path containing '../'"
+        or
+        not isRelative() and
+        result = "an absolute path"
+      }
     }
 
     /**

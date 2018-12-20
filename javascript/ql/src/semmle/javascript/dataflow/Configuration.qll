@@ -772,6 +772,11 @@ class PathNode extends TPathNode {
     result = cfg
   }
 
+  /** Gets the flow label associated with the end of the path. */
+  DataFlow::FlowLabel getEndLabel() {
+    result = summary.getEndLabel()
+  }
+
   /** Gets a successor node of this path node. */
   PathNode getASuccessor() {
     exists (DataFlow::Node succ, PathSummary newSummary |
