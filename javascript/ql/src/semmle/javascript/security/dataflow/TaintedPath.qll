@@ -60,8 +60,14 @@ module TaintedPath {
       /** Holds if this path is normalized. */
       predicate isNormalized() { normalization = "normalized" }
 
+      /** Holds if this path is not normalized. */
+      predicate isNonNormalized() { normalization = "raw" }
+
       /** Holds if this path is relative. */
       predicate isRelative() { relativeness = "relative" }
+
+      /** Holds if this path is relative. */
+      predicate isAbsolute() { relativeness = "absolute" }
 
       /** Gets the path label with normalized flag set to true. */
       UnixPath normalize() {
@@ -186,6 +192,26 @@ module TaintedPath {
 
     override Label::UnixPath getALabel() {
       result.isNormalized() and result.isRelative()
+    }
+  }
+
+  /**
+   * A call to `path.isAbsolute` as a sanitizer for absolute paths.
+   */
+  class IsAbsoluteSanitizer extends TaintTracking::LabeledSanitizerGuardNode, DataFlow::CallNode {
+    IsAbsoluteSanitizer() {
+      this = DataFlow::moduleMember("path", "isAbsolute").getACall()
+    }
+
+    override predicate sanitizes(boolean outcome, Expr e) {
+      // Sanitize absolute paths in the false case.
+      outcome = false and
+      e = getArgument(0).asExpr()
+      // TODO: We should also sanitize relative paths in the true case, but this is not currently possible.
+    }
+
+    override Label::UnixPath getALabel() {
+      result.isAbsolute()
     }
   }
 
