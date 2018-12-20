@@ -116,3 +116,31 @@ private class LibraryStartsWith extends StartsWithCheck, DataFlow::CallNode {
     result = getArgument(1)
   }
 }
+
+/**
+ * A comparison of form `x[0] === "k"` for some single-character constant `k`.
+ */
+private class FirstCharacterCheck extends StartsWithCheck, DataFlow::ValueNode {
+  override EqualityTest astNode;
+  DataFlow::PropRead read;
+  Expr constant;
+  
+  FirstCharacterCheck() {
+    read.flowsTo(astNode.getAnOperand().flow()) and
+    read.getPropertyNameExpr().getIntValue() = 0 and
+    constant.getStringValue().length() = 1 and
+    astNode.getAnOperand() = constant
+  }
+
+  override DataFlow::Node getBaseString() {
+    result = read.getBase()
+  }
+
+  override DataFlow::Node getSubstring() {
+    result = constant.flow()
+  }
+
+  override boolean getPolarity() {
+    result = astNode.getPolarity()
+  }
+}

@@ -78,4 +78,8 @@ var server = http.createServer(function(req, res) {
   // GOOD: combined absoluteness and folder check in one startsWith call
   if (normalizedPath.startsWith("/home/user/www"))
     res.write(fs.readFileSync(normalizedPath));
+
+  // GOOD: normalized relative path that does not start with ../
+  if (normalizedPath[0] !== "/" && normalizedPath[0] !== ".")
+    res.write(fs.readFileSync(normalizedPath));
 });
