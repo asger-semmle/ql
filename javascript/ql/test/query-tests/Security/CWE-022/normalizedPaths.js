@@ -58,4 +58,24 @@ var server = http.createServer(function(req, res) {
   
   // BAD: path can still use ../
   res.write(fs.readFileSync("./" + path));
+  
+  // BAD: absolute path
+  if (pathModule.isAbsolute(path))
+    res.write(fs.readFileSync(path));
+
+  // BAD: absolute path can contain ../
+  if (pathModule.isAbsolute(path) && path.startsWith("/home/user/www"))
+    res.write(fs.readFileSync(path));
+  
+  // BAD: absolute path (normalized or not)
+  if (pathModule.isAbsolute(normalizedPath))
+    res.write(fs.readFileSync(normalizedPath));
+
+  // GOOD: normalized absolute path with folder check
+  if (pathModule.isAbsolute(normalizedPath) && normalizedPath.startsWith("/home/user/www"))
+    res.write(fs.readFileSync(normalizedPath));
+
+  // GOOD: combined absoluteness and folder check in one startsWith call
+  if (normalizedPath.startsWith("/home/user/www"))
+    res.write(fs.readFileSync(normalizedPath));
 });

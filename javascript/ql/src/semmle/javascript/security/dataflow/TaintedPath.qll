@@ -152,6 +152,7 @@ module TaintedPath {
     override predicate isSanitizerGuard(TaintTracking::SanitizerGuardNode guard) {
       guard instanceof StrongPathCheck or
       guard instanceof StartsWithDotDotSanitizer or
+      guard instanceof StartsWithDirSanitizer or
       guard instanceof IsAbsoluteSanitizer
     }
 
@@ -233,7 +234,8 @@ module TaintedPath {
     StartsWithCheck startsWith;
 
     StartsWithDotDotSanitizer() {
-      this = startsWith
+      this = startsWith and
+      startsWith.getSubstring().asExpr().getStringValue() + any(string s) = "../"
     }
 
     override predicate sanitizes(boolean outcome, Expr e, DataFlow::FlowLabel label) {
@@ -241,11 +243,31 @@ module TaintedPath {
       //   .startsWith(".")
       //   .startsWith("..")
       //   .startsWith("../")
-      startsWith.getSubstring().asExpr().getStringValue() + any(string s) = "../" and
       outcome = startsWith.getPolarity().booleanNot() and
       e = startsWith.getBaseString().asExpr() and
       label.(Label::UnixPath).isNormalized() and
       label.(Label::UnixPath).isRelative()
+    }
+  }
+ 
+  /**
+   * A check of form `x.startsWith(dir)` that sanitizes normalized absolute paths, since it is then
+   * known to be in a subdirectory of `dir`. 
+   */
+  class StartsWithDirSanitizer extends TaintTracking::LabeledSanitizerGuardNode {
+    StartsWithCheck startsWith;
+
+    StartsWithDirSanitizer() {
+      this = startsWith and
+      // do not confuse this with a simple isAbsolute() check
+      not startsWith.getSubstring().asExpr().getStringValue() = "/"
+    }
+
+    override predicate sanitizes(boolean outcome, Expr e, DataFlow::FlowLabel label) {
+      outcome = startsWith.getPolarity() and
+      e = startsWith.getBaseString().asExpr() and
+      label.(Label::UnixPath).isAbsolute() and
+      label.(Label::UnixPath).isNormalized()
     }
   }
 

@@ -83,6 +83,9 @@ nodes
 | normalizedPaths.js:51:31:51:60 | normali ... x.html" |
 | normalizedPaths.js:60:29:60:39 | "./" + path |
 | normalizedPaths.js:60:36:60:39 | path |
+| normalizedPaths.js:64:31:64:34 | path |
+| normalizedPaths.js:68:31:68:34 | path |
+| normalizedPaths.js:72:31:72:44 | normalizedPath |
 | tainted-array-steps.js:9:7:9:48 | path |
 | tainted-array-steps.js:9:14:9:37 | url.par ... , true) |
 | tainted-array-steps.js:9:14:9:43 | url.par ... ).query |
@@ -166,6 +169,8 @@ edges
 | normalizedPaths.js:10:7:10:48 | path | normalizedPaths.js:12:45:12:48 | path |
 | normalizedPaths.js:10:7:10:48 | path | normalizedPaths.js:35:33:35:36 | path |
 | normalizedPaths.js:10:7:10:48 | path | normalizedPaths.js:60:36:60:39 | path |
+| normalizedPaths.js:10:7:10:48 | path | normalizedPaths.js:64:31:64:34 | path |
+| normalizedPaths.js:10:7:10:48 | path | normalizedPaths.js:68:31:68:34 | path |
 | normalizedPaths.js:10:14:10:37 | url.par ... , true) | normalizedPaths.js:10:14:10:43 | url.par ... ).query |
 | normalizedPaths.js:10:14:10:43 | url.par ... ).query | normalizedPaths.js:10:14:10:48 | url.par ... ry.path |
 | normalizedPaths.js:10:14:10:48 | url.par ... ry.path | normalizedPaths.js:10:7:10:48 | path |
@@ -174,6 +179,7 @@ edges
 | normalizedPaths.js:12:7:12:49 | normalizedPath | normalizedPaths.js:31:31:31:44 | normalizedPath |
 | normalizedPaths.js:12:7:12:49 | normalizedPath | normalizedPaths.js:40:31:40:44 | normalizedPath |
 | normalizedPaths.js:12:7:12:49 | normalizedPath | normalizedPaths.js:51:31:51:44 | normalizedPath |
+| normalizedPaths.js:12:7:12:49 | normalizedPath | normalizedPaths.js:72:31:72:44 | normalizedPath |
 | normalizedPaths.js:12:24:12:49 | pathMod ... e(path) | normalizedPaths.js:12:7:12:49 | normalizedPath |
 | normalizedPaths.js:12:24:12:49 | pathMod ... e(path) | normalizedPaths.js:12:7:12:49 | normalizedPath |
 | normalizedPaths.js:12:45:12:48 | path | normalizedPaths.js:12:24:12:49 | pathMod ... e(path) |
@@ -227,6 +233,9 @@ edges
 | normalizedPaths.js:40:31:40:44 | normalizedPath | normalizedPaths.js:10:24:10:30 | req.url | normalizedPaths.js:40:31:40:44 | normalizedPath | This path depends on $@, which could be an absolute path. | normalizedPaths.js:10:24:10:30 | req.url | a user-provided value |
 | normalizedPaths.js:51:31:51:60 | normali ... x.html" | normalizedPaths.js:10:24:10:30 | req.url | normalizedPaths.js:51:31:51:60 | normali ... x.html" | This path depends on $@, which could be an absolute path. | normalizedPaths.js:10:24:10:30 | req.url | a user-provided value |
 | normalizedPaths.js:60:29:60:39 | "./" + path | normalizedPaths.js:10:24:10:30 | req.url | normalizedPaths.js:60:29:60:39 | "./" + path | This path depends on $@, which could be a path containing '../'. | normalizedPaths.js:10:24:10:30 | req.url | a user-provided value |
+| normalizedPaths.js:64:31:64:34 | path | normalizedPaths.js:10:24:10:30 | req.url | normalizedPaths.js:64:31:64:34 | path | This path depends on $@. | normalizedPaths.js:10:24:10:30 | req.url | a user-provided value |
+| normalizedPaths.js:68:31:68:34 | path | normalizedPaths.js:10:24:10:30 | req.url | normalizedPaths.js:68:31:68:34 | path | This path depends on $@. | normalizedPaths.js:10:24:10:30 | req.url | a user-provided value |
+| normalizedPaths.js:72:31:72:44 | normalizedPath | normalizedPaths.js:10:24:10:30 | req.url | normalizedPaths.js:72:31:72:44 | normalizedPath | This path depends on $@, which could be an absolute path. | normalizedPaths.js:10:24:10:30 | req.url | a user-provided value |
 | tainted-array-steps.js:11:29:11:54 | ['publi ... in('/') | tainted-array-steps.js:9:24:9:30 | req.url | tainted-array-steps.js:11:29:11:54 | ['publi ... in('/') | This path depends on $@. | tainted-array-steps.js:9:24:9:30 | req.url | a user-provided value |
 | tainted-array-steps.js:15:29:15:43 | parts.join('/') | tainted-array-steps.js:9:24:9:30 | req.url | tainted-array-steps.js:15:29:15:43 | parts.join('/') | This path depends on $@. | tainted-array-steps.js:9:24:9:30 | req.url | a user-provided value |
 | tainted-require.js:7:19:7:37 | req.param("module") | tainted-require.js:7:19:7:37 | req.param("module") | tainted-require.js:7:19:7:37 | req.param("module") | This path depends on $@. | tainted-require.js:7:19:7:37 | req.param("module") | a user-provided value |
