@@ -149,7 +149,7 @@ abstract class Configuration extends string {
     exists (BarrierGuardNode guard |
       not guard instanceof LabeledBarrierGuardNode and
       isBarrierGuard(guard) and
-      guard.blocks(node)
+      guard.internalBlocks(_, node)
     )
   }
 
@@ -167,10 +167,14 @@ abstract class Configuration extends string {
    * Holds if flow with label `lbl` cannot flow into `node`.
    */
   predicate isLabeledBarrier(DataFlow::Node node, FlowLabel lbl) {
-    exists (LabeledBarrierGuardNode guard |
-      lbl = guard.getALabel() and
+    exists (LabeledBarrierGuardNode guard, boolean outcome |
       isBarrierGuard(guard) and
-      guard.blocks(node)
+      guard.internalBlocks(outcome, node) and
+      (
+        lbl = guard.getALabel(outcome)
+        or
+        lbl = guard.getALabel()
+      )
     )
   }
 
@@ -288,13 +292,14 @@ abstract class BarrierGuardNode extends DataFlow::Node {
    *
    * INTERNAL: this predicate should only be used from within `blocks(boolean, Expr)`.
    */
-  predicate blocks(DataFlow::Node nd) {
+  predicate internalBlocks(boolean outcome, DataFlow::Node nd) {
     // 1) `nd` is a use of a refinement node that blocks its input variable
     exists (SsaRefinementNode ref |
       nd = DataFlow::ssaDefinitionNode(ref) and
       forex (SsaVariable input | input = ref.getAnInput() |
         asExpr() = ref.getGuard().getTest() and
-        blocks(ref.getGuard().(ConditionGuardNode).getOutcome(), input.getAUse())
+        outcome = ref.getGuard().(ConditionGuardNode).getOutcome() and
+        blocks(outcome, input.getAUse())
       )
     )
     or
@@ -302,7 +307,8 @@ abstract class BarrierGuardNode extends DataFlow::Node {
     exists (AccessPath p, BasicBlock bb, ConditionGuardNode cond |
       nd = DataFlow::valueNode(p.getAnInstanceIn(bb)) and
       asExpr() = cond.getTest() and
-      blocks(cond.getOutcome(), p.getAnInstance()) and
+      outcome = cond.getOutcome() and
+      blocks(outcome, p.getAnInstance()) and
       cond.dominates(bb)
     )
   }
@@ -318,9 +324,14 @@ abstract class BarrierGuardNode extends DataFlow::Node {
  */
 abstract class LabeledBarrierGuardNode extends BarrierGuardNode {
   /**
+   * Get a flow label blocked by this guard node in case it evaluates to `outcome`.
+   */
+  FlowLabel getALabel(boolean outcome) { none() }
+
+  /**
    * Get a flow label blocked by this guard node.
    */
-  abstract FlowLabel getALabel();
+  FlowLabel getALabel() { none() }
 }
 
 

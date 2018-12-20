@@ -251,7 +251,8 @@ module TaintedPath {
   }
 
   /**
-   * A call to `path.isAbsolute` as a sanitizer for absolute paths.
+   * A call to `path.isAbsolute` as a sanitizer for relative paths in true branch,
+   * and a sanitizer for absolute paths in the false branch.
    */
   class IsAbsoluteSanitizer extends TaintTracking::LabeledSanitizerGuardNode {
     DataFlow::Node operand;
@@ -267,14 +268,14 @@ module TaintedPath {
     }
 
     override predicate sanitizes(boolean outcome, Expr e) {
-      // Sanitize absolute paths in the false case.
-      outcome = false and
+      (outcome = true or outcome = false) and
       e = operand.asExpr()
-      // TODO: We should also sanitize relative paths in the true case, but this is not currently possible.
     }
 
-    override Label::UnixPath getALabel() {
-      result.isAbsolute()
+    override Label::UnixPath getALabel(boolean outcome) {
+      outcome = false and result.isAbsolute()
+      or
+      outcome = true and result.isRelative()
     }
   }
 
