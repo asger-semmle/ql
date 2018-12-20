@@ -198,15 +198,23 @@ module TaintedPath {
   /**
    * A call to `path.isAbsolute` as a sanitizer for absolute paths.
    */
-  class IsAbsoluteSanitizer extends TaintTracking::LabeledSanitizerGuardNode, DataFlow::CallNode {
+  class IsAbsoluteSanitizer extends TaintTracking::LabeledSanitizerGuardNode {
+    DataFlow::Node operand;
+
     IsAbsoluteSanitizer() {
-      this = DataFlow::moduleMember("path", "isAbsolute").getACall()
+      exists (DataFlow::CallNode call | this = call |
+        call = DataFlow::moduleMember("path", "isAbsolute").getACall() and
+        operand = call.getArgument(0))
+      or
+      exists (StartsWithCheck startsWith | this = startsWith |
+        startsWith.getSubstring().asExpr().getStringValue() = "/" + any(string s) and
+        operand = startsWith.getBaseString())
     }
 
     override predicate sanitizes(boolean outcome, Expr e) {
       // Sanitize absolute paths in the false case.
       outcome = false and
-      e = getArgument(0).asExpr()
+      e = operand.asExpr()
       // TODO: We should also sanitize relative paths in the true case, but this is not currently possible.
     }
 

@@ -34,4 +34,12 @@ var server = http.createServer(function(req, res) {
     if (path.startsWith(".."))
       res.write(fs.readFileSync(path));
   }
+  
+  // BAD: normalized path can be absolute
+  if (!normalizedPath.startsWith(".."))
+    res.write(fs.readFileSync(normalizedPath));
+  
+  // GOOD: path is relative and cannot contain path traversal
+  if (!normalizedPath.startsWith("..") && !normalizedPath.startsWith("/"))
+    res.write(fs.readFileSync(normalizedPath));
 });
