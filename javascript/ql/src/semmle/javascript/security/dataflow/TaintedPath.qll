@@ -150,7 +150,6 @@ module TaintedPath {
     }
 
     override predicate isSanitizerGuard(TaintTracking::SanitizerGuardNode guard) {
-      guard instanceof StrongPathCheck or
       guard instanceof StartsWithDotDotSanitizer or
       guard instanceof StartsWithDirSanitizer or
       guard instanceof IsAbsoluteSanitizer
@@ -349,64 +348,6 @@ module TaintedPath {
   class AngularJSTemplateUrlSink extends Sink, DataFlow::ValueNode {
     AngularJSTemplateUrlSink() {
       this = any(AngularJS::CustomDirective d).getMember("templateUrl")
-    }
-  }
-
-  /**
-   * Holds if `check` evaluating to `outcome` is not sufficient to sanitize `path`.
-   */
-  predicate weakCheck(Expr check, boolean outcome, VarAccess path) {
-    // `path.startsWith` and equivalent
-    path = check.flow().(StartsWithCheck).getBaseString().asExpr() and
-    (outcome = true or outcome = false)
-    or
-    // `path.endsWith`, `fs.existsSync(path)`
-    exists (Expr base, string m | check.(MethodCallExpr).calls(base, m) |
-      path = base and
-      m = "endsWith"
-      or
-      path = check.(MethodCallExpr).getArgument(0) and
-      m.regexpMatch("exists(Sync)?")
-    ) and
-    (outcome = true or outcome = false)
-    or
-    // `path.indexOf` comparisons
-    check.(Comparison).getAnOperand().(MethodCallExpr).calls(path, "indexOf") and
-    (outcome = true or outcome = false)
-    or
-    // `path != null`, `path != undefined`, `path != "somestring"`
-    exists (EqualityTest eq, Expr op |
-      eq = check and eq.hasOperands(path, op) and outcome = eq.getPolarity().booleanNot() |
-      op instanceof NullLiteral or
-      op instanceof SyntacticConstants::UndefinedConstant or
-      exists(op.getStringValue())
-    )
-    or
-    // `path`
-    check = path and
-    (outcome = true or outcome = false)
-  }
-
-  /**
-   * A conditional involving the path, that is not considered to be a weak check.
-   */
-  class StrongPathCheck extends TaintTracking::SanitizerGuardNode {
-    VarAccess path;
-    boolean sanitizedOutcome;
-
-    StrongPathCheck() {
-      not this instanceof IsAbsoluteSanitizer and
-      exists (ConditionGuardNode cgg | asExpr() = cgg.getTest() |
-        asExpr() = path.getParentExpr*() and
-        path = any(SsaVariable v).getAUse() and
-        (sanitizedOutcome = true or sanitizedOutcome = false) and
-        not weakCheck(asExpr(), sanitizedOutcome, path)
-      )
-    }
-
-    override predicate sanitizes(boolean outcome, Expr e) {
-      path = e and
-      outcome = sanitizedOutcome
     }
   }
 }
