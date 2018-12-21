@@ -130,6 +130,17 @@ module TaintedPath {
   }
 
   /**
+   * Maps any label to itself, except `data` which is mapped to `taint`.
+   */
+  private predicate preserveLabel(DataFlow::FlowLabel srclabel, DataFlow::FlowLabel dstlabel) {
+    srclabel != DataFlow::FlowLabel::data() and
+    dstlabel = srclabel
+    or
+    srclabel = DataFlow::FlowLabel::data() and
+    dstlabel = DataFlow::FlowLabel::taint()
+  }
+
+  /**
    * A taint-tracking configuration for reasoning about tainted-path vulnerabilities.
    */
   class Configuration extends TaintTracking::Configuration {
@@ -167,7 +178,7 @@ module TaintedPath {
      * Holds if we should include a step from `src -> dst` with labels `srclabel -> dstlabel`, and the
      * standard taint step `src -> dst` should be suppresesd.
      */
-    predicate isTaintedPathStep(DataFlow::Node src, DataFlow::Node dst,  DataFlow::FlowLabel srclabel, Label::UnixPath dstlabel) {
+    predicate isTaintedPathStep(DataFlow::Node src, DataFlow::Node dst,  DataFlow::FlowLabel srclabel, DataFlow::FlowLabel dstlabel) {
       exists (NormalizingPathCall call |
         src = call.getInput() and
         dst = call.getOutput() and
@@ -178,8 +189,21 @@ module TaintedPath {
         src = call.getInput() and
         dst = call.getOutput() and
         srclabel = anyLabel() and
-        dstlabel.isAbsolute() and
-        dstlabel.isNormalized()
+        dstlabel.(Label::UnixPath).isAbsolute() and
+        dstlabel.(Label::UnixPath).isNormalized()
+      )
+      or
+      exists (NormalizingRelativePathCall call |
+        src = call.getInput() and
+        dst = call.getOutput() and
+        dstlabel.(Label::UnixPath).isRelative() and
+        dstlabel.(Label::UnixPath).isNormalized()
+      )
+      or
+      exists (PreservingPathCall call |
+        src = call.getInput() and
+        dst = call.getOutput() and
+        preserveLabel(srclabel, dstlabel)
       )
       or
       // Prefixing a string with anything other than `/` makes it relative.
@@ -188,18 +212,12 @@ module TaintedPath {
       exists (DataFlow::Node operator, int n | StringConcatenation::taintStep(src, dst, operator, n) |
         n > 0 and
         Label::toUnixPath(srclabel).canContainDotDotSlash() and
-        dstlabel.isRelative() and   // The path may be absolute, but the attacker only controls a relative path in it.
-        dstlabel.isNonNormalized()  // The ../ is no longer at the beginning of the string.
+        dstlabel.(Label::UnixPath).isRelative() and   // The path may be absolute, but the attacker only controls a relative path in it.
+        dstlabel.(Label::UnixPath).isNonNormalized()  // The ../ is no longer at the beginning of the string.
         or
         // use ordinary taint flow for the first operand
         n = 0 and
-        (
-          srclabel != DataFlow::FlowLabel::data() and
-          dstlabel = srclabel
-          or
-          srclabel = DataFlow::FlowLabel::data() and
-          dstlabel = DataFlow::FlowLabel::taint()
-        )
+        preserveLabel(srclabel, dstlabel)
       )
     }
   }
@@ -251,6 +269,64 @@ module TaintedPath {
       this = DataFlow::moduleMember("fs", "realpath").getACall() and
       input = getArgument(0) and
       output = getCallback(1).getParameter(1)
+    }
+
+    /**
+     * Gets the input path to be normalized.
+     */
+    DataFlow::Node getInput() {
+      result = input
+    }
+
+    /**
+     * Gets the normalized path.
+     */
+    DataFlow::Node getOutput() {
+      result = output
+    }
+  }
+
+  /**
+   * A call that normalizes a path and converts it to a relative path.
+   */
+  class NormalizingRelativePathCall extends DataFlow::CallNode {
+    DataFlow::Node input;
+    DataFlow::Node output;
+
+    NormalizingRelativePathCall() {
+      this = DataFlow::moduleMember("path", "relative").getACall() and
+      input = getAnArgument() and
+      output = this
+    }
+
+    /**
+     * Gets the input path to be normalized.
+     */
+    DataFlow::Node getInput() {
+      result = input
+    }
+
+    /**
+     * Gets the normalized path.
+     */
+    DataFlow::Node getOutput() {
+      result = output
+    }
+  }
+
+  /**
+   * A call that preserves taint without changing the flow label.
+   */
+  class PreservingPathCall extends DataFlow::CallNode {
+    DataFlow::Node input;
+    DataFlow::Node output;
+
+    PreservingPathCall() {
+      exists (string name | name = "dirname" or name = "toNamespacedPath" |
+        this = DataFlow::moduleMember("path", name).getACall() and
+        input = getAnArgument() and
+        output = this
+      )
     }
 
     /**
