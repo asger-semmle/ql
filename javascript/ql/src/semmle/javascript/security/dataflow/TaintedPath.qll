@@ -70,9 +70,33 @@ module TaintedPath {
       predicate isAbsolute() { relativeness = "absolute" }
 
       /** Gets the path label with normalized flag set to true. */
-      UnixPath normalize() {
+      UnixPath toNormalized() {
         result.isNormalized() and
         result.getRelativeness() = this.getRelativeness()
+      }
+
+      /** Gets the path label with normalized flag set to true. */
+      UnixPath toNonNormalized() {
+        result.isNonNormalized() and
+        result.getRelativeness() = this.getRelativeness()
+      }
+
+      /** Gets the path label with absolute flag set to true. */
+      UnixPath toAbsolute() {
+        result.isAbsolute() and
+        result.getNormalization() = this.getNormalization()
+      }
+
+      /** Gets the path label with absolute flag set to true. */
+      UnixPath toRelative() {
+        result.isRelative() and
+        result.getNormalization() = this.getNormalization()
+      }
+      
+      /** Holds if this path may contain `../` components. */
+      predicate canContainDotDotSlash() {
+        // Absolute normalized path is the only combination that cannot contain `../`. 
+        not (isNormalized() and isAbsolute())
       }
 
       /**
@@ -142,11 +166,22 @@ module TaintedPath {
      * Holds if we should include a step from `src -> dst` with labels `srclabel -> dstlabel`, and the
      * standard taint step `src -> dst` should be suppresesd.
      */
-    predicate isTaintedPathStep(DataFlow::Node src, DataFlow::Node dst,  DataFlow::FlowLabel srclabel, DataFlow::FlowLabel dstlabel) {
+    predicate isTaintedPathStep(DataFlow::Node src, DataFlow::Node dst,  DataFlow::FlowLabel srclabel, Label::UnixPath dstlabel) {
       exists (NormalizingPathCall call |
         src = call.getInput() and
         dst = call.getOutput() and
-        dstlabel = Label::toUnixPath(srclabel).normalize()
+        dstlabel = Label::toUnixPath(srclabel).toNormalized()
+      )
+      or
+      // Prefixing a string with anything other than `/` makes it relative.
+      // If the prefix does start with a `/`, the prefix is likely the intended root directory so `../` is the only
+      // viable attack vector afterwards.
+      exists (DataFlow::Node operator, int n |
+        StringConcatenation::taintStep(src, dst, operator, n) and
+        n > 0 and
+        Label::toUnixPath(srclabel).canContainDotDotSlash() and
+        dstlabel.isRelative() and   // The path may be absolute, but the attacker only controls a relative path in it.
+        dstlabel.isNonNormalized()  // The ../ is no longer at the beginning of the string.
       )
     }
   }

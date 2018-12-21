@@ -42,4 +42,16 @@ var server = http.createServer(function(req, res) {
   // GOOD: path is relative and cannot contain path traversal
   if (!normalizedPath.startsWith("..") && !normalizedPath.startsWith("/"))
     res.write(fs.readFileSync(normalizedPath));
+  
+  // GOOD: path cannot be interpreted as relative
+  if (!normalizedPath.startsWith(".."))
+    res.write(fs.readFileSync("./" + normalizedPath));
+  
+  // GOOD: path cannot be interpreted as relative
+  let normalizedRelativePath = pathModule.normalizePath("./" + path);
+  if (!normalizedRelativePath.startsWith(".."))
+    res.write(fs.readFileSync(normalizedRelativePath));
+  
+  // BAD: path can still use ../
+  res.write(fs.readFileSync("./" + path));
 });
