@@ -82,4 +82,9 @@ var server = http.createServer(function(req, res) {
   // GOOD: normalized relative path that does not start with ../
   if (normalizedPath[0] !== "/" && normalizedPath[0] !== ".")
     res.write(fs.readFileSync(normalizedPath));
+
+  // GOOD: realpath is normalized and absolute
+  let realpath = fs.realpathSync(path);
+  if (realpath.startsWith("/home/user/www"))
+    res.write(fs.readFileSync(realpath));
 });

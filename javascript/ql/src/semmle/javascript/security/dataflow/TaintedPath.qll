@@ -174,6 +174,14 @@ module TaintedPath {
         dstlabel = Label::toUnixPath(srclabel).toNormalized()
       )
       or
+      exists (ResolvingPathCall call |
+        src = call.getInput() and
+        dst = call.getOutput() and
+        srclabel = anyLabel() and
+        dstlabel.isAbsolute() and
+        dstlabel.isNormalized()
+      )
+      or
       // Prefixing a string with anything other than `/` makes it relative.
       // If the prefix does start with a `/`, the prefix is likely the intended root directory so `../` is the only
       // viable attack vector afterwards.
@@ -207,6 +215,42 @@ module TaintedPath {
       this = DataFlow::moduleMember("path", "normalize").getACall() and
       input = getArgument(0) and
       output = this
+    }
+
+    /**
+     * Gets the input path to be normalized.
+     */
+    DataFlow::Node getInput() {
+      result = input
+    }
+
+    /**
+     * Gets the normalized path.
+     */
+    DataFlow::Node getOutput() {
+      result = output
+    }
+  }
+
+  /**
+   * A call that converts a path to an absolute normalized path.
+   */
+  class ResolvingPathCall extends DataFlow::CallNode {
+    DataFlow::Node input;
+    DataFlow::Node output;
+
+    ResolvingPathCall() {
+      this = DataFlow::moduleMember("path", "resolve").getACall() and
+      input = getAnArgument() and
+      output = this
+      or
+      this = DataFlow::moduleMember("fs", "realpathSync").getACall() and
+      input = getArgument(0) and
+      output = this
+      or
+      this = DataFlow::moduleMember("fs", "realpath").getACall() and
+      input = getArgument(0) and
+      output = getCallback(1).getParameter(1)
     }
 
     /**
@@ -325,7 +369,8 @@ module TaintedPath {
    */
   class FsPathSink extends Sink, DataFlow::ValueNode {
     FsPathSink() {
-      this = any(FileSystemAccess fs).getAPathArgument()
+      this = any(FileSystemAccess fs).getAPathArgument() and
+      not this = any(ResolvingPathCall call).getInput()
     }
   }
 
