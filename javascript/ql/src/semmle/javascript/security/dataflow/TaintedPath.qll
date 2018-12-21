@@ -219,7 +219,36 @@ module TaintedPath {
         n = 0 and
         preserveLabel(srclabel, dstlabel)
       )
+      or
+      // path.join()
+      exists (DataFlow::CallNode join, int n | join = DataFlow::moduleMember("path", "join").getACall() |
+        src = join.getArgument(n) and
+        dst = join and
+        (
+          // If the initial argument is tainted, just normalize it. It can be relative or absolute.
+          n = 0 and
+          dstlabel = Label::toUnixPath(srclabel).toNormalized()
+          or
+          // For later arguments, the flow label depends on whether the first argument is absolute or relative.
+          // If in doubt, we assume it is absolute.
+          n > 0 and
+          Label::toUnixPath(srclabel).canContainDotDotSlash() and
+          dstlabel.(Label::UnixPath).isNormalized() and
+          if isRelative(join.getArgument(0).asExpr().toString()) then
+            dstlabel.(Label::UnixPath).isRelative()
+          else
+            dstlabel.(Label::UnixPath).isAbsolute()
+        )
+      )
     }
+  }
+
+  /**
+   * Holds if `s` is a relative path.
+   */
+  bindingset[s]
+  private predicate isRelative(string s) {
+    not s = "/" + any(string q)
   }
 
   /**

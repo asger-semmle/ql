@@ -87,4 +87,38 @@ var server = http.createServer(function(req, res) {
   let realpath = fs.realpathSync(path);
   if (realpath.startsWith("/home/user/www"))
     res.write(fs.readFileSync(realpath));
+
+  // BAD: suffix has no effect
+  res.write(fs.readFileSync(pathModule.join(path, 'index.html')));
+  res.write(fs.readFileSync(pathModule.join(normalizedPath, 'index.html')));
+  res.write(fs.readFileSync(pathModule.join(realpath, 'index.html')));
+  
+  // BAD: joining with relative path is not enough
+  res.write(fs.readFileSync(pathModule.join('.', path)));
+  res.write(fs.readFileSync(pathModule.join('.', normalizedPath)));
+
+  // BAD: joining with absolute path is not enough
+  res.write(fs.readFileSync(pathModule.join('/home/user/www', path)));
+  res.write(fs.readFileSync(pathModule.join('/home/user/www', normalizedPath)));
+
+  // GOOD: absolute normalized paths are safe
+  res.write(fs.readFileSync(pathModule.join('.', realpath)));
+  res.write(fs.readFileSync(pathModule.join('/home/user/www', realpath)));
+
+  // GOOD: coercion to relative followed by '..' check.
+  let joinedRelative = pathModule.join('.', path);
+  if (!joinedRelative.startsWith('..')) {
+    res.write(fs.readFileSync(joinedRelative));
+    res.write(fs.readFileSync("/home/user/www/" + joinedRelative));
+  }
+
+  // GOOD: coercion to absolute followed by homedir check
+  let joinedAbsolute = pathModule.join('/home/user/www', path);
+  if (joinedAbsolute.startsWith('/home/user/www')) {
+    res.write(fs.readFileSync(joinedAbsolute));
+  }
+  // BAD: wrong polarity
+  if (!joinedAbsolute.startsWith('/home/user/www')) {
+    res.write(fs.readFileSync(joinedAbsolute));
+  }
 });
