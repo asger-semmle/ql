@@ -236,18 +236,16 @@ module TaintedPath {
       this = startsWith
     }
 
-    override predicate sanitizes(boolean outcome, Expr e) {
+    override predicate sanitizes(boolean outcome, Expr e, DataFlow::FlowLabel label) {
       // Sanitize in the false case for:
       //   .startsWith(".")
       //   .startsWith("..")
       //   .startsWith("../")
       startsWith.getSubstring().asExpr().getStringValue() + any(string s) = "../" and
       outcome = startsWith.getPolarity().booleanNot() and
-      e = startsWith.getBaseString().asExpr()
-    }
-
-    override Label::UnixPath getALabel() {
-      result.isNormalized() and result.isRelative()
+      e = startsWith.getBaseString().asExpr() and
+      label.(Label::UnixPath).isNormalized() and
+      label.(Label::UnixPath).isRelative()
     }
   }
 
@@ -257,26 +255,27 @@ module TaintedPath {
    */
   class IsAbsoluteSanitizer extends TaintTracking::LabeledSanitizerGuardNode {
     DataFlow::Node operand;
+    boolean polarity;
 
     IsAbsoluteSanitizer() {
       exists (DataFlow::CallNode call | this = call |
         call = DataFlow::moduleMember("path", "isAbsolute").getACall() and
-        operand = call.getArgument(0))
+        operand = call.getArgument(0) and
+        polarity = true)
       or
       exists (StartsWithCheck startsWith | this = startsWith |
         startsWith.getSubstring().asExpr().getStringValue() = "/" + any(string s) and
-        operand = startsWith.getBaseString())
+        operand = startsWith.getBaseString() and
+        polarity = startsWith.getPolarity())
     }
 
-    override predicate sanitizes(boolean outcome, Expr e) {
-      (outcome = true or outcome = false) and
-      e = operand.asExpr()
-    }
-
-    override Label::UnixPath getALabel(boolean outcome) {
-      outcome = false and result.isAbsolute()
-      or
-      outcome = true and result.isRelative()
+    override predicate sanitizes(boolean outcome, Expr e, DataFlow::FlowLabel label) {
+      e = operand.asExpr() and
+      (
+        outcome = polarity and label.(Label::UnixPath).isRelative()
+        or
+        outcome = polarity.booleanNot() and label.(Label::UnixPath).isAbsolute()
+      )
     }
   }
 
