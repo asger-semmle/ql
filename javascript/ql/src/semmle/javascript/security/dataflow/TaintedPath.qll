@@ -151,7 +151,8 @@ module TaintedPath {
 
     override predicate isSanitizerGuard(TaintTracking::SanitizerGuardNode guard) {
       guard instanceof StrongPathCheck or
-      guard instanceof StartsWithDotDotSanitizer
+      guard instanceof StartsWithDotDotSanitizer or
+      guard instanceof IsAbsoluteSanitizer
     }
 
     override predicate isAdditionalFlowStep(DataFlow::Node src, DataFlow::Node dst, DataFlow::FlowLabel srclabel, DataFlow::FlowLabel dstlabel) {
@@ -373,6 +374,7 @@ module TaintedPath {
     boolean sanitizedOutcome;
 
     StrongPathCheck() {
+      not this instanceof IsAbsoluteSanitizer and
       exists (ConditionGuardNode cgg | asExpr() = cgg.getTest() |
         asExpr() = path.getParentExpr*() and
         path = any(SsaVariable v).getAUse() and
