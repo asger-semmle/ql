@@ -169,6 +169,14 @@ module TaintedPath {
 
     override predicate isAdditionalFlowStep(DataFlow::Node src, DataFlow::Node dst, DataFlow::FlowLabel srclabel, DataFlow::FlowLabel dstlabel) {
       isTaintedPathStep(src, dst, srclabel, dstlabel)
+      or
+      // Introduce the specialized flow labels when approaching a specialized sanitizer guard.
+      exists (TaintTracking::LabeledSanitizerGuardNode guard, Expr e |
+        guard.sanitizes(_, e, any(Label::UnixPath label)) and
+        src.(DataFlow::SourceNode).flowsToExpr(e) and
+        dst = src and
+        srclabel = DataFlow::FlowLabel::dataOrTaint() and
+        dstlabel instanceof Label::UnixPath)
     }
 
     override predicate isOmittedTaintStep(DataFlow::Node src, DataFlow::Node dst) {
@@ -388,7 +396,7 @@ module TaintedPath {
     StringConcatenation::getOperand(node, 1).getALocalSource() = DataFlow::moduleMember("path", "sep") and
     StringConcatenation::getNumOperand(node) = 2
   }
-
+  
   /**
    * A check of form `x.startsWith("../")` or similar.
    *
@@ -409,8 +417,10 @@ module TaintedPath {
       //   .startsWith("../")
       outcome = startsWith.getPolarity().booleanNot() and
       e = startsWith.getBaseString().asExpr() and
-      label.(Label::UnixPath).isNormalized() and
-      label.(Label::UnixPath).isRelative()
+      exists (Label::UnixPath unixPath | unixPath = Label::toUnixPath(label) |
+        unixPath.isNormalized() and
+        unixPath.isRelative()
+      )
     }
   }
  
@@ -430,8 +440,10 @@ module TaintedPath {
     override predicate sanitizes(boolean outcome, Expr e, DataFlow::FlowLabel label) {
       outcome = startsWith.getPolarity() and
       e = startsWith.getBaseString().asExpr() and
-      label.(Label::UnixPath).isAbsolute() and
-      label.(Label::UnixPath).isNormalized()
+      exists (Label::UnixPath unixPath | unixPath = Label::toUnixPath(label) |
+        unixPath.isAbsolute() and
+        unixPath.isNormalized()
+      )
     }
   }
 
@@ -457,10 +469,10 @@ module TaintedPath {
 
     override predicate sanitizes(boolean outcome, Expr e, DataFlow::FlowLabel label) {
       e = operand.asExpr() and
-      (
-        outcome = polarity and label.(Label::UnixPath).isRelative()
+      exists (Label::UnixPath unixPath | unixPath = Label::toUnixPath(label) |
+        outcome = polarity and unixPath.isRelative()
         or
-        outcome = polarity.booleanNot() and label.(Label::UnixPath).isAbsolute()
+        outcome = polarity.booleanNot() and unixPath.isAbsolute()
       )
     }
   }
@@ -479,7 +491,7 @@ module TaintedPath {
     override predicate sanitizes(boolean outcome, Expr e, DataFlow::FlowLabel label) {
       e = contains.getBaseString().asExpr() and
       outcome = contains.getPolarity().booleanNot() and
-      label.(Label::UnixPath).canContainDotDotSlash() // can still be bypassed by normalized absolute path
+      Label::toUnixPath(label).canContainDotDotSlash() // can still be bypassed by normalized absolute path
     }
   }
 

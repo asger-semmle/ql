@@ -132,4 +132,13 @@ var server = http.createServer(function(req, res) {
   if (!prefixedPath.includes("..")) {
     res.write(fs.readFileSync(prefixedPath));
   }
+
+  if (!path.includes("..")) {
+    // BAD: path can still be absolute
+    res.write(fs.readFileSync(path));
+
+    // GOOD: path can neither use ../ nor be absolute
+    if (!pathModule.isAbsolute(path))
+      res.write(fs.readFileSync(path));
+  }
 });
