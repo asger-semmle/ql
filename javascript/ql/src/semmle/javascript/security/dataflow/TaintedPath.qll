@@ -374,6 +374,17 @@ module TaintedPath {
   }
 
   /**
+   * Holds if `node` is a prefix of the string `../`.
+   */
+  private predicate isDotDotSlashPrefix(DataFlow::Node node) {
+    node.asExpr().getStringValue() + any(string s) = "../"
+    or
+    StringConcatenation::getOperand(node, 0).asExpr().getStringValue() = ".." and
+    StringConcatenation::getOperand(node, 1).getALocalSource() = DataFlow::moduleMember("path", "sep") and
+    StringConcatenation::getNumOperand(node) = 2
+  }
+
+  /**
    * A check of form `x.startsWith("../")` or similar.
    *
    * This is relevant for paths that are known to be normalized.
@@ -383,7 +394,7 @@ module TaintedPath {
 
     StartsWithDotDotSanitizer() {
       this = startsWith and
-      startsWith.getSubstring().asExpr().getStringValue() + any(string s) = "../"
+      isDotDotSlashPrefix(startsWith.getSubstring())
     }
 
     override predicate sanitizes(boolean outcome, Expr e, DataFlow::FlowLabel label) {
