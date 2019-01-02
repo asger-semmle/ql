@@ -22,6 +22,10 @@ var server = http.createServer(function(req, res) {
     // GOOD: path is sanitized
     if (!normalizedPath.startsWith("../"))
       res.write(fs.readFileSync(normalizedPath));
+
+
+
+
   
     // BAD: wrong polarity
     if (normalizedPath.startsWith("."))
