@@ -220,3 +220,152 @@ private class FirstCharacterCheck extends StartsWithCheck, DataFlow::ValueNode {
     result = astNode.getPolarity()
   }
 }
+
+/**
+ * A expression that is equivalent to `A.includes(B)` or `!A.includes(B)`.
+ */
+abstract class StringContainsCheck extends DataFlow::Node {
+  /** Gets the `A` in `A.includes(B)`. */
+  abstract DataFlow::Node getBaseString();
+
+  /** Gets the `B` in `A.includes(B)`. */
+  abstract DataFlow::Node getSubstring();
+
+  /**
+   * Gets the polarity if the check.
+   *
+   * If the polarity is `false` the check returns `true` if the string does not start
+   * with the given substring.
+   */
+  boolean getPolarity() { result = true }
+}
+
+/**
+ * A call to a method named `includes`, assumed to refer to `String.prototype.includes`.
+ */
+private class NativeStringIncludesCheck extends StringContainsCheck, DataFlow::MethodCallNode {
+  NativeStringIncludesCheck() {
+    getMethodName() = "includes" and
+    getNumArgument() = 1
+  }
+
+  override DataFlow::Node getBaseString() {
+    result = getReceiver()
+  }
+
+  override DataFlow::Node getSubstring() {
+    result = getArgument(0)
+  }
+}
+
+/**
+ * A call to `_.includes`, assumed to operate on strings.
+ */
+private class LibraryStringIncludesCheck extends StringContainsCheck, DataFlow::CallNode {
+  LibraryStringIncludesCheck() {
+    this = LodashUnderscore::member("includes").getACall()
+  }
+
+  override DataFlow::Node getBaseString() {
+    result = getArgument(0)
+  }
+
+  override DataFlow::Node getSubstring() {
+    result = getArgument(1)
+  }
+}
+
+/**
+ * A check of form `A.indexOf(B) !== -1` or similar.
+ */
+private class IndexOfEqualsContainsCheck extends StringContainsCheck, DataFlow::ValueNode {
+  MethodCallExpr indexOf;
+  override EqualityTest astNode;
+
+  IndexOfEqualsContainsCheck() {
+    exists (Expr index | astNode.hasOperands(indexOf, index) |
+      // one operand is of the form `whitelist.indexOf(x)`
+      indexOf.getMethodName() = "indexOf" and
+      // and the other one is -1
+      index.getIntValue() = -1
+    )
+  }
+
+  override DataFlow::Node getBaseString() {
+    result = indexOf.getReceiver().flow()
+  }
+
+  override DataFlow::Node getSubstring() {
+    result = indexOf.getArgument(0).flow()
+  }
+
+  override boolean getPolarity() {
+    result = astNode.getPolarity().booleanNot()
+  }
+}
+
+/**
+ * A check of form `A.indexOf(B) >= 0` or similar.
+ */
+private class IndexOfRelationalContainsCheck extends StringContainsCheck, DataFlow::ValueNode {
+  MethodCallExpr indexOf;
+  override RelationalComparison astNode;
+  boolean polarity;
+
+  IndexOfRelationalContainsCheck() {
+    exists (Expr lesser, Expr greater |
+      astNode.getLesserOperand() = lesser and
+      astNode.getGreaterOperand() = greater and
+      indexOf.getMethodName() = "indexOf" and
+      indexOf.getNumArgument() = 0 |
+      polarity = true and
+      greater = indexOf and
+      (
+        lesser.getIntValue() >= 0
+        or
+        lesser.getIntValue() = -1 and not astNode.isInclusive()
+      )
+      or 
+      polarity = false and
+      lesser = indexOf and
+      (
+        greater.getIntValue() = -1
+        or
+        greater.getIntValue() = 0 and not astNode.isInclusive()
+      )
+    )
+  }
+
+  override DataFlow::Node getBaseString() {
+    result = indexOf.getReceiver().flow()
+  }
+
+  override DataFlow::Node getSubstring() {
+    result = indexOf.getArgument(0).flow()
+  }
+
+  override boolean getPolarity() {
+    result = polarity
+  }
+}
+
+/**
+ * An expression of form `~A.indexOf(B)` which, when coerced to a boolean, is equivalent to `A.includes(B)`.
+ */
+private class IndexOfBitwiseContainsCheck extends StringContainsCheck, DataFlow::ValueNode {
+  MethodCallExpr indexOf;
+  override BitNotExpr astNode;
+
+  IndexOfBitwiseContainsCheck() {
+    astNode.getOperand() = indexOf and
+    indexOf.getMethodName() = "indexOf"
+  }
+
+  override DataFlow::Node getBaseString() {
+    result = indexOf.getReceiver().flow()
+  }
+
+  override DataFlow::Node getSubstring() {
+    result = indexOf.getArgument(0).flow()
+  }
+}
