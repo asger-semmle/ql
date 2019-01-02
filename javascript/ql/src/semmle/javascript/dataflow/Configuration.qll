@@ -282,10 +282,10 @@ module FlowLabel {
 abstract class BarrierGuardNode extends DataFlow::Node {
 
   /**
-   * Holds if data flow node `nd` acts as a barrier for data flow.
+   * Holds if data flow node `nd` acts as a barrier for data flow, possibly due to aliasing
+   * through an access path.
    *
-   * `label` is bound to the label should be be blocked, or the empty string if all labels
-   * should be blocked. 
+   * `label` is bound to the blocked label, or the empty string if all labels should be blocked.
    *
    * INTERNAL: this predicate should only be used from within `blocks(boolean, Expr)`.
    */
@@ -296,11 +296,7 @@ abstract class BarrierGuardNode extends DataFlow::Node {
       forex (SsaVariable input | input = ref.getAnInput() |
         asExpr() = ref.getGuard().getTest() and
         outcome = ref.getGuard().(ConditionGuardNode).getOutcome() and
-        (
-          blocks(outcome, input.getAUse()) and label = ""
-          or
-          blocks(outcome, input.getAUse(), label)
-        )
+        internalBlocksExpr(outcome, input.getAUse(), label)
       )
     )
     or
@@ -309,13 +305,31 @@ abstract class BarrierGuardNode extends DataFlow::Node {
       nd = DataFlow::valueNode(p.getAnInstanceIn(bb)) and
       asExpr() = cond.getTest() and
       outcome = cond.getOutcome() and
-      (
-        blocks(outcome, p.getAnInstance()) and label = ""
-        or
-        blocks(outcome, p.getAnInstance(), label)
-      ) and
+      internalBlocksAccessPath(outcome, p, label) and
       cond.dominates(bb)
     )
+  }
+
+  /**
+   * Holds if data flow node `nd` acts as a barrier for data flow.
+   *
+   * `label` is bound to the blocked label, or the empty string if all labels should be blocked.
+   */
+  private predicate internalBlocksExpr(boolean outcome, Expr test, string label) {
+    blocks(outcome, test) and label = ""
+    or
+    blocks(outcome, test, label)
+  }
+
+  /**
+   * Holds if data flow node `nd` acts as a barrier for data flow due to aliasing through
+   * an access path.
+   *
+   * `label` is bound to the blocked label, or the empty string if all labels should be blocked.
+   */
+  pragma[noinline]
+  private predicate internalBlocksAccessPath(boolean outcome, AccessPath ap, string label) {
+    internalBlocksExpr(outcome, ap.getAnInstance(), label)
   }
 
   /**
