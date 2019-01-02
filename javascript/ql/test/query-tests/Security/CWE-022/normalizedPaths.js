@@ -125,4 +125,11 @@ var server = http.createServer(function(req, res) {
   if (!joinedAbsolute.startsWith('/home/user/www')) {
     res.write(fs.readFileSync(joinedAbsolute));
   }
+
+  let prefixedPath = "foo/" + normalizedPath;
+
+  // GOOD: neither ../ nor absolute
+  if (!prefixedPath.includes("..")) {
+    res.write(fs.readFileSync(prefixedPath));
+  }
 });

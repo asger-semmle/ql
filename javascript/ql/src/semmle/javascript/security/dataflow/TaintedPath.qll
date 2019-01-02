@@ -163,7 +163,8 @@ module TaintedPath {
     override predicate isSanitizerGuard(TaintTracking::SanitizerGuardNode guard) {
       guard instanceof StartsWithDotDotSanitizer or
       guard instanceof StartsWithDirSanitizer or
-      guard instanceof IsAbsoluteSanitizer
+      guard instanceof IsAbsoluteSanitizer or
+      guard instanceof ContainsDotDotSanitizer
     }
 
     override predicate isAdditionalFlowStep(DataFlow::Node src, DataFlow::Node dst, DataFlow::FlowLabel srclabel, DataFlow::FlowLabel dstlabel) {
@@ -461,6 +462,24 @@ module TaintedPath {
         or
         outcome = polarity.booleanNot() and label.(Label::UnixPath).isAbsolute()
       )
+    }
+  }
+
+  /**
+   * An expression of form `x.includes("..")` or similar.
+   */
+  class ContainsDotDotSanitizer extends TaintTracking::LabeledSanitizerGuardNode {
+    StringContainsCheck contains;
+    
+    ContainsDotDotSanitizer() {
+      this = contains and
+      isDotDotSlashPrefix(contains.getSubstring())
+    }
+
+    override predicate sanitizes(boolean outcome, Expr e, DataFlow::FlowLabel label) {
+      e = contains.getBaseString().asExpr() and
+      outcome = contains.getPolarity().booleanNot() and
+      label.(Label::UnixPath).canContainDotDotSlash() // can still be bypassed by normalized absolute path
     }
   }
 
