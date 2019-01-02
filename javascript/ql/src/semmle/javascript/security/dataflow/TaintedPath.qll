@@ -179,12 +179,14 @@ module TaintedPath {
      * standard taint step `src -> dst` should be suppresesd.
      */
     predicate isTaintedPathStep(DataFlow::Node src, DataFlow::Node dst,  DataFlow::FlowLabel srclabel, DataFlow::FlowLabel dstlabel) {
+      // path.normalize() and similar
       exists (NormalizingPathCall call |
         src = call.getInput() and
         dst = call.getOutput() and
         dstlabel = Label::toUnixPath(srclabel).toNormalized()
       )
       or
+      // path.resolve() and similar
       exists (ResolvingPathCall call |
         src = call.getInput() and
         dst = call.getOutput() and
@@ -193,6 +195,7 @@ module TaintedPath {
         dstlabel.(Label::UnixPath).isNormalized()
       )
       or
+      // path.relative() and similar
       exists (NormalizingRelativePathCall call |
         src = call.getInput() and
         dst = call.getOutput() and
@@ -200,6 +203,7 @@ module TaintedPath {
         dstlabel.(Label::UnixPath).isNormalized()
       )
       or
+      // path.dirname() and similar
       exists (PreservingPathCall call |
         src = call.getInput() and
         dst = call.getOutput() and
