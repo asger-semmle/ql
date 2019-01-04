@@ -126,7 +126,7 @@ private cached module Internal {
        }
     or TRefinement(ReachableBasicBlock bb, int i, GuardControlFlowNode guard, SsaSourceVariable v) {
          bb.getNode(i) = guard and
-         guard.getTest().(Refinement).getRefinedVar() = v and
+         guard.getTest().(RefinementCandidate).getARefinedVar() = v and
          liveAtEntry(bb, v)
        }
 

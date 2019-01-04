@@ -1,4 +1,7 @@
 | advanced-callgraph.js:2:13:2:20 | source() | advanced-callgraph.js:6:22:6:22 | v |
+| booleanOps.js:2:11:2:18 | source() | booleanOps.js:4:8:4:8 | x |
+| booleanOps.js:2:11:2:18 | source() | booleanOps.js:13:10:13:10 | x |
+| booleanOps.js:2:11:2:18 | source() | booleanOps.js:22:10:22:10 | x |
 | partialCalls.js:4:17:4:24 | source() | partialCalls.js:17:14:17:14 | x |
 | partialCalls.js:4:17:4:24 | source() | partialCalls.js:20:14:20:14 | y |
 | partialCalls.js:4:17:4:24 | source() | partialCalls.js:30:14:30:20 | x.value |

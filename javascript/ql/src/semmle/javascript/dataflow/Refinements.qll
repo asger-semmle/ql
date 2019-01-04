@@ -44,8 +44,19 @@ abstract class RefinementCandidate extends Expr {
 
   /**
    * Gets a refinement value inferred for this expression in context `ctxt`.
+   *
+   * Has no result for candidates for which `canEvaluate` does not hold.
    */
   abstract pragma[nomagic] RefinementValue eval(RefinementContext ctxt);
+
+  /**
+   * Holds if this refinement candidate can be evaluated using `eval`.
+   *
+   * If this does not hold, the refinement will be ignored by type inference,
+   * but a refinement SSA node will still be inserted, which can be used by
+   * taint-tracking sanitizer guard nodes.
+   */
+  abstract predicate canEvaluate();
 }
 
 /**
@@ -54,7 +65,7 @@ abstract class RefinementCandidate extends Expr {
  */
 class Refinement extends Expr {
   Refinement() {
-    this instanceof RefinementCandidate and
+    this.(RefinementCandidate).canEvaluate() and
     count(this.(RefinementCandidate).getARefinedVar()) <= 1
   }
 
@@ -88,6 +99,10 @@ private abstract class LiteralRefinement extends RefinementCandidate, Literal {
    */
   RefinementValue eval() {
     result = TAny()
+  }
+
+  override predicate canEvaluate() {
+    any()
   }
 }
 
@@ -148,6 +163,10 @@ private class UndefinedInRefinement extends RefinementCandidate, SyntacticConsta
     ctxt.appliesTo(this) and
     result = TValueWithType(TTUndefined())
   }
+
+  override predicate canEvaluate() {
+    any()
+  }
 }
 
 /** A variable use, viewed as a refinement expression. */
@@ -164,6 +183,10 @@ private class VariableRefinement extends RefinementCandidate, VarUse {
     ctxt.appliesTo(this) and
     result = ctxt.(VarRefinementContext).getAValue()
   }
+
+  override predicate canEvaluate() {
+    any()
+  }
 }
 
 /** A parenthesized refinement expression. */
@@ -178,6 +201,10 @@ private class ParRefinement extends RefinementCandidate, ParExpr {
 
   override RefinementValue eval(RefinementContext ctxt) {
     result = getExpression().(RefinementCandidate).eval(ctxt)
+  }
+
+  override predicate canEvaluate() {
+    getExpression().(RefinementCandidate).canEvaluate()
   }
 }
 
@@ -196,6 +223,10 @@ private class TypeofRefinement extends RefinementCandidate, TypeofExpr {
       opVal = getOperand().(RefinementCandidate).eval(ctxt) and
       result = TStringConstant(opVal.typeof())
     )
+  }
+
+  override predicate canEvaluate() {
+    getOperand().(RefinementCandidate).canEvaluate()
   }
 }
 
@@ -233,6 +264,11 @@ private class EqRefinement extends RefinementCandidate, EqualityTest {
     if this instanceof StrictEqualityTest then result = true
     else result = false
   }
+
+  override predicate canEvaluate() {
+    getLeftOperand().(RefinementCandidate).canEvaluate() and
+    getRightOperand().(RefinementCandidate).canEvaluate()
+  }
 }
 
 /** An index expression that can be used as a refinement expression. */
@@ -257,6 +293,34 @@ private class IndexRefinement extends RefinementCandidate, IndexExpr {
       else
         result = TAny()
     )
+  }
+
+  override predicate canEvaluate() {
+    getBase().(RefinementCandidate).canEvaluate() and
+    getIndex().(RefinementCandidate).canEvaluate()
+  }
+}
+
+/** A call whose arguments and/or receiver can be used in a refinement SSA node. */
+private class CallRefinement extends RefinementCandidate, CallExpr {
+  CallRefinement() {
+    getAnArgument() instanceof VarAccess
+    or
+    this.(MethodCallExpr).getReceiver() instanceof VarAccess
+  }
+
+  override SsaSourceVariable getARefinedVar() {
+    result = getAnArgument().(VarAccess).getVariable()
+    or
+    result = this.(MethodCallExpr).getReceiver().(VarAccess).getVariable()
+  }
+
+  override RefinementValue eval(RefinementContext ctxt) {
+    none()
+  }
+
+  override predicate canEvaluate() {
+    none()
   }
 }
 
