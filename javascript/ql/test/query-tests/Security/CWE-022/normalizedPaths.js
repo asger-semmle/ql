@@ -1,144 +1,171 @@
 var fs = require('fs'),
-    http = require('http'),
+    express = require('express'),
     url = require('url'),
     sanitize = require('sanitize-filename'),
     pathModule = require('path')
     ;
 
+let app = express();
 
-var server = http.createServer(function(req, res) {
-  let path = url.parse(req.url, true).query.path;
-  
-  let normalizedPath = pathModule.normalize(path);
-  if (!pathModule.isAbsolute(normalizedPath)) {
-    // GOOD: path is sanitized
-    if (!normalizedPath.startsWith("."))
-      res.write(fs.readFileSync(normalizedPath));
-  
-    // GOOD: path is sanitized
-    if (!normalizedPath.startsWith(".."))
-      res.write(fs.readFileSync(normalizedPath));
-  
-    // GOOD: path is sanitized
-    if (!normalizedPath.startsWith("../"))
-      res.write(fs.readFileSync(normalizedPath));
+app.get('/basic', (req, res) => {
+  let path = req.query.path;
 
-    // GOOD: path is sanitized
-    if (!normalizedPath.startsWith(".." + pathModule.sep))
-      res.write(fs.readFileSync(normalizedPath));
-  
-    // BAD: wrong polarity
-    if (normalizedPath.startsWith("."))
-      res.write(fs.readFileSync(normalizedPath));
-  
-    // BAD: normalized path can still contain path traversal
-    res.write(fs.readFileSync(normalizedPath));
-    
-    // BAD: without normalization, startsWith can be bypassed by x/../../
-    if (path.startsWith(".."))
-      res.write(fs.readFileSync(path));
-  }
-  
-  // BAD: normalized path can be absolute
-  if (!normalizedPath.startsWith(".."))
-    res.write(fs.readFileSync(normalizedPath));
-  
-  // GOOD: path is relative and cannot contain path traversal
-  if (!normalizedPath.startsWith("..") && !normalizedPath.startsWith("/"))
-    res.write(fs.readFileSync(normalizedPath));
-  
-  if (!normalizedPath.startsWith("..")) {
-    // GOOD: path cannot be interpreted as relative
-    res.write(fs.readFileSync("./" + normalizedPath));
+  res.sendFile(path); // NOT OK
+  res.sendFile('./' + path); // NOT OK
+  res.sendFile(path + '/index.html'); // NOT OK
+  res.sendFile(pathModule.join(path, 'index.html')); // NOT OK
+  res.sendFile(pathModule.join('/home/user/www', path)); // NOT OK
+});
 
-    // BAD: path can be absolute
-    res.write(fs.readFileSync(normalizedPath + "/index.html"));
-  }
+app.get('/normalize', (req, res) => {
+  let path = pathModule.normalize(req.query.path);
 
-  // GOOD: path cannot be interpreted as relative
-  let normalizedRelativePath = pathModule.normalizePath("./" + path);
-  if (!normalizedRelativePath.startsWith(".."))
-    res.write(fs.readFileSync(normalizedRelativePath));
-  
-  // BAD: path can still use ../
-  res.write(fs.readFileSync("./" + path));
-  
-  // BAD: absolute path
+  res.sendFile(path); // NOT OK
+  res.sendFile('./' + path); // NOT OK
+  res.sendFile(path + '/index.html'); // NOT OK
+  res.sendFile(pathModule.join(path, 'index.html')); // NOT OK
+  res.sendFile(pathModule.join('/home/user/www', path)); // NOT OK
+});
+
+app.get('/normalize-notAbsolute', (req, res) => {
+  let path = pathModule.normalize(req.query.path);
+
   if (pathModule.isAbsolute(path))
-    res.write(fs.readFileSync(path));
+    return;
+   
+  res.sendFile(path); // NOT OK
 
-  // BAD: absolute path can contain ../
-  if (pathModule.isAbsolute(path) && path.startsWith("/home/user/www"))
-    res.write(fs.readFileSync(path));
+  if (!path.startsWith("."))
+    res.sendFile(path); // OK
+  else
+    res.sendFile(path); // NOT OK - wrong polarity
   
-  // BAD: absolute path (normalized or not)
-  if (pathModule.isAbsolute(normalizedPath))
-    res.write(fs.readFileSync(normalizedPath));
-
-  // GOOD: normalized absolute path with folder check
-  if (pathModule.isAbsolute(normalizedPath) && normalizedPath.startsWith("/home/user/www"))
-    res.write(fs.readFileSync(normalizedPath));
-
-  // GOOD: combined absoluteness and folder check in one startsWith call
-  if (normalizedPath.startsWith("/home/user/www"))
-    res.write(fs.readFileSync(normalizedPath));
-
-  // GOOD: normalized relative path that does not start with ../
-  if (normalizedPath[0] !== "/" && normalizedPath[0] !== ".")
-    res.write(fs.readFileSync(normalizedPath));
-
-  // GOOD: realpath is normalized and absolute
-  let realpath = fs.realpathSync(path);
-  if (realpath.startsWith("/home/user/www"))
-    res.write(fs.readFileSync(realpath));
-
-  // BAD: suffix has no effect
-  res.write(fs.readFileSync(pathModule.join(path, 'index.html')));
-  res.write(fs.readFileSync(pathModule.join(normalizedPath, 'index.html')));
-  res.write(fs.readFileSync(pathModule.join(realpath, 'index.html')));
+  if (!path.startsWith(".."))
+    res.sendFile(path); // OK
   
-  // BAD: joining with relative path is not enough
-  res.write(fs.readFileSync(pathModule.join('.', path)));
-  res.write(fs.readFileSync(pathModule.join('.', normalizedPath)));
+  if (!path.startsWith("../"))
+    res.sendFile(path); // OK
 
-  // BAD: joining with absolute path is not enough
-  res.write(fs.readFileSync(pathModule.join('/home/user/www', path)));
-  res.write(fs.readFileSync(pathModule.join('/home/user/www', normalizedPath)));
+  if (!path.startsWith(".." + pathModule.sep))
+    res.sendFile(path); // OK
+});
 
-  // GOOD: absolute normalized paths are safe
-  res.write(fs.readFileSync(pathModule.join('.', realpath)));
-  res.write(fs.readFileSync(pathModule.join('/home/user/www', realpath)));
+app.get('/normalize-noInitialDotDot', (req, res) => {
+  let path = pathModule.normalize(req.query.path);
+  
+  if (path.startsWith(".."))
+    return;
 
-  // GOOD: coercion to relative followed by '..' check.
-  let joinedRelative = pathModule.join('.', path);
-  if (!joinedRelative.startsWith('..')) {
-    res.write(fs.readFileSync(joinedRelative));
-    res.write(fs.readFileSync("/home/user/www/" + joinedRelative));
-  }
+  res.sendFile(path); // NOT OK - could be absolute
 
-  // GOOD: coercion to absolute followed by homedir check
-  let joinedAbsolute = pathModule.join('/home/user/www', path);
-  if (joinedAbsolute.startsWith('/home/user/www')) {
-    res.write(fs.readFileSync(joinedAbsolute));
-  }
-  // BAD: wrong polarity
-  if (!joinedAbsolute.startsWith('/home/user/www')) {
-    res.write(fs.readFileSync(joinedAbsolute));
-  }
+  res.sendFile("./" + path); // OK - coerced to relative
 
-  let prefixedPath = "foo/" + normalizedPath;
+  res.sendFile(path + "/index.html"); // NOT OK - not coerced
 
-  // GOOD: neither ../ nor absolute
-  if (!prefixedPath.includes("..")) {
-    res.write(fs.readFileSync(prefixedPath));
-  }
+  if (!pathModule.isAbsolute(path))
+    res.sendFile(path); // OK
+  else
+    res.sendFile(path); // NOT OK
+});
 
-  if (!path.includes("..")) {
-    // BAD: path can still be absolute
-    res.write(fs.readFileSync(path));
+app.get('/prepend-normalize', (req, res) => {
+  // Coerce to relative prior to normalization
+  let path = pathModule.normalize('./' + req.query.path);
 
-    // GOOD: path can neither use ../ nor be absolute
-    if (!pathModule.isAbsolute(path))
-      res.write(fs.readFileSync(path));
-  }
+  if (!path.startsWith(".."))
+    res.sendFile(path); // OK
+  else
+     res.sendFile(path); // NOT OK
+});
+
+app.get('/absolute', (req, res) => {
+  let path = req.query.path;
+  
+  if (!pathModule.isAbsolute(path))
+    return;
+
+  res.write(fs.readFileSync(path)); // NOT OK
+
+  if (path.startsWith('/home/user/www'))
+    res.write(fs.readFileSync(path)); // NOT OK - can still contain '../'
+});
+
+app.get('/normalized-absolute', (req, res) => {
+  let path = pathModule.normalize(req.query.path);
+  
+  if (!pathModule.isAbsolute(path))
+    return;
+  
+  res.write(fs.readFileSync(path)); // NOT OK
+
+  if (path.startsWith('/home/user/www'))
+    res.write(fs.readFileSync(path)); // OK
+});
+
+app.get('/combined-check', (req, res) => {
+  let path = pathModule.normalize(req.query.path);
+  
+  // Combined absoluteness and folder check in one startsWith call
+  if (path.startsWith("/home/user/www"))
+    res.sendFile(path); // OK
+
+  if (path[0] !== "/" && path[0] !== ".")
+    res.sendFile(path); // OK
+});
+
+app.get('/realpath', (req, res) => {
+  let path = fs.realpathSync(req.query.path);
+
+  res.sendFile(path); // NOT OK
+  res.sendFile(pathModule.join(path, 'index.html')); // NOT OK
+
+  if (path.startsWith("/home/user/www"))
+    res.sendFile(path); // OK - both absolute and normalized before check
+    
+  res.sendFile(pathModule.join('.', path)); // OK - normalized and coerced to relative
+  res.sendFile(pathModule.join('/home/user/www', path)); // OK
+});
+
+app.get('/coerce-relative', (req, res) => {
+  let path = pathModule.join('.', req.query.path);
+
+  if (!path.startsWith('..'))
+    res.sendFile(path); // OK
+  else
+    res.sendFile(path); // NOT OK
+});
+
+app.get('/coerce-absolute', (req, res) => {
+  let path = pathModule.join('/home/user/www', req.query.path);
+
+  if (path.startsWith('/home/user/www'))
+    res.sendFile(path); // OK
+  else
+    res.sendFile(path); // NOT OK
+});
+
+app.get('/concat-after-normalization', (req, res) => {
+  let path = 'foo/' + pathModule.normalize(req.query.path);
+
+  if (!path.startsWith('..'))
+    res.sendFile(path); // NOT OK - prefixing foo/ invalidates check
+  else
+    res.sendFile(path); // NOT OK
+
+  if (!path.includes('..'))
+    res.sendFile(path); // OK
+});
+
+app.get('/noDotDot', (req, res) => {
+  let path = pathModule.normalize(req.query.path);
+
+  if (path.includes('..'))
+    return;
+
+  res.sendFile(path); // NOT OK - can still be absolute
+
+  if (!pathModule.isAbsolute(path))
+    res.sendFile(path); // OK
+  else
+    res.sendFile(path); // NOT OK
 });
