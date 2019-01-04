@@ -108,7 +108,8 @@ abstract class StartsWithCheck extends DataFlow::Node {
 private class NativeStartsWith extends StartsWithCheck, DataFlow::MethodCallNode {
   NativeStartsWith() {
     getMethodName() = "startsWith" and
-    getNumArgument() = 1
+    getNumArgument() = 1 and
+    not this instanceof LibraryStartsWith
   }
 
   override DataFlow::Node getBaseString() {
@@ -246,7 +247,8 @@ abstract class StringContainsCheck extends DataFlow::Node {
 private class NativeStringIncludesCheck extends StringContainsCheck, DataFlow::MethodCallNode {
   NativeStringIncludesCheck() {
     getMethodName() = "includes" and
-    getNumArgument() = 1
+    getNumArgument() = 1 and
+    not this instanceof LibraryStringIncludesCheck
   }
 
   override DataFlow::Node getBaseString() {
