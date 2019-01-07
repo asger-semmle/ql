@@ -219,24 +219,6 @@ module TaintedPath {
         preserveLabel(srclabel, dstlabel)
       )
       or
-      // Prefixing a string with anything other than `/` makes it relative.
-      // If the prefix does start with a `/`, the prefix is likely the intended root directory so `../` is the only
-      // viable attack vector afterwards.
-      exists (DataFlow::Node operator, int n | StringConcatenation::taintStep(src, dst, operator, n) |
-        // use ordinary taint flow for the first operand
-        n = 0 and
-        preserveLabel(srclabel, dstlabel)
-        or
-        n > 0 and
-        Label::toUnixPath(srclabel).canContainDotDotSlash() and
-        dstlabel.(Label::UnixPath).isNonNormalized() and  // The ../ is no longer at the beginning of the string.
-        (if isRelative(StringConcatenation::getOperand(operator, 0).asExpr().toString()) then
-          dstlabel.(Label::UnixPath).isRelative()
-        else
-          dstlabel.(Label::UnixPath).isAbsolute()
-        )
-      )
-      or
       // path.join()
       exists (DataFlow::CallNode join, int n | join = DataFlow::moduleMember("path", "join").getACall() |
         src = join.getArgument(n) and
@@ -255,6 +237,22 @@ module TaintedPath {
             dstlabel.(Label::UnixPath).isRelative()
           else
             dstlabel.(Label::UnixPath).isAbsolute()
+        )
+      )
+      or
+      // String concatenation - behaves like path.join() except without normalization
+      exists (DataFlow::Node operator, int n | StringConcatenation::taintStep(src, dst, operator, n) |
+        // use ordinary taint flow for the first operand
+        n = 0 and
+        preserveLabel(srclabel, dstlabel)
+        or
+        n > 0 and
+        Label::toUnixPath(srclabel).canContainDotDotSlash() and
+        dstlabel.(Label::UnixPath).isNonNormalized() and  // The ../ is no longer at the beginning of the string.
+        (if isRelative(StringConcatenation::getOperand(operator, 0).asExpr().toString()) then
+          dstlabel.(Label::UnixPath).isRelative()
+        else
+          dstlabel.(Label::UnixPath).isAbsolute()
         )
       )
     }
