@@ -177,6 +177,18 @@ module TaintedPath {
         dst = src and
         srclabel = DataFlow::FlowLabel::dataOrTaint() and
         dstlabel instanceof Label::UnixPath)
+      or
+      // Ignore all preliminary sanitization after decoding URI components
+      srclabel instanceof Label::UnixPath and
+      dstlabel = DataFlow::FlowLabel::taint() and
+      (
+        any(UriLibraryStep step).step(src, dst)
+        or
+        exists (DataFlow::CallNode decode | decode.getCalleeName() = "decodeURIComponent" or decode.getCalleeName() = "decodeURI" |
+          src = decode.getArgument(0) and
+          dst = decode
+        )
+      )
     }
 
     override predicate isOmittedTaintStep(DataFlow::Node src, DataFlow::Node dst) {

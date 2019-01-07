@@ -209,3 +209,15 @@ app.get('/join-regression', (req, res) => {
   else
     res.sendFile(normalizedPath); // NOT OK
 });
+
+app.get('/decode-after-normalization', (req, res) => {
+  let path = pathModule.normalize(req.query.path);
+  
+  if (!pathModule.isAbsolute(path) && !path.startsWith('..'))
+    res.sendFile(path); // OK
+
+  path = decodeURIComponent(path);
+
+  if (!pathModule.isAbsolute(path) && !path.startsWith('..'))
+    res.sendFile(path); // NOT OK - not normalized
+});
