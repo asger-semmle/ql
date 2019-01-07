@@ -225,8 +225,12 @@ module TaintedPath {
       exists (DataFlow::Node operator, int n | StringConcatenation::taintStep(src, dst, operator, n) |
         n > 0 and
         Label::toUnixPath(srclabel).canContainDotDotSlash() and
-        dstlabel.(Label::UnixPath).isRelative() and   // The path may be absolute, but the attacker only controls a relative path in it.
-        dstlabel.(Label::UnixPath).isNonNormalized()  // The ../ is no longer at the beginning of the string.
+        dstlabel.(Label::UnixPath).isNonNormalized() and  // The ../ is no longer at the beginning of the string.
+        (if isRelative(StringConcatenation::getOperand(operator, 0).asExpr().toString()) then
+          dstlabel.(Label::UnixPath).isRelative()
+        else
+          dstlabel.(Label::UnixPath).isAbsolute()
+        )
         or
         // use ordinary taint flow for the first operand
         n = 0 and
