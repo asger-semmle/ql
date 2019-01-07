@@ -223,6 +223,10 @@ module TaintedPath {
       // If the prefix does start with a `/`, the prefix is likely the intended root directory so `../` is the only
       // viable attack vector afterwards.
       exists (DataFlow::Node operator, int n | StringConcatenation::taintStep(src, dst, operator, n) |
+        // use ordinary taint flow for the first operand
+        n = 0 and
+        preserveLabel(srclabel, dstlabel)
+        or
         n > 0 and
         Label::toUnixPath(srclabel).canContainDotDotSlash() and
         dstlabel.(Label::UnixPath).isNonNormalized() and  // The ../ is no longer at the beginning of the string.
@@ -231,10 +235,6 @@ module TaintedPath {
         else
           dstlabel.(Label::UnixPath).isAbsolute()
         )
-        or
-        // use ordinary taint flow for the first operand
-        n = 0 and
-        preserveLabel(srclabel, dstlabel)
       )
       or
       // path.join()
