@@ -169,3 +169,43 @@ app.get('/noDotDot', (req, res) => {
   else
     res.sendFile(path); // NOT OK
 });
+
+app.get('/join-regression', (req, res) => {
+  let path = req.query.path;
+
+  // Regression test for a specific corner case:
+  // Some guard nodes sanitize both branches, but for a different set of flow labels.
+  // Verify that this does not break anything.
+  if (pathModule.isAbsolute(path)) {path;} else {path;}
+  if (path.startsWith('/')) {path;} else {path;}
+  if (path.startsWith('/x')) {path;} else {path;}
+  if (path.startsWith('.')) {path;} else {path;}
+
+  res.sendFile(path); // NOT OK
+
+  if (pathModule.isAbsolute(path))
+    res.sendFile(path); // NOT OK
+  else
+    res.sendFile(path); // NOT OK
+
+  if (path.includes('..'))
+    res.sendFile(path); // NOT OK
+  else
+    res.sendFile(path); // NOT OK
+
+  if (!path.includes('..') && !pathModule.isAbsolute(path))
+    res.sendFile(path); // OK
+  else
+    res.sendFile(path); // NOT OK
+
+  let normalizedPath = pathModule.normalize(path);
+  if (normalizedPath.startsWith('/home/user/www'))
+    res.sendFile(normalizedPath); // OK
+  else
+    res.sendFile(normalizedPath); // NOT OK
+
+  if (normalizedPath.startsWith('/home/user/www') || normalizedPath.startsWith('/home/user/public'))
+    res.sendFile(normalizedPath); // OK
+  else
+    res.sendFile(normalizedPath); // NOT OK
+});

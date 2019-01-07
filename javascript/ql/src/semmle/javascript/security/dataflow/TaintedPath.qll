@@ -433,6 +433,7 @@ module TaintedPath {
 
     StartsWithDirSanitizer() {
       this = startsWith and
+      not isDotDotSlashPrefix(startsWith.getSubstring()) and
       // do not confuse this with a simple isAbsolute() check
       not startsWith.getSubstring().asExpr().getStringValue() = "/"
     }
@@ -454,17 +455,23 @@ module TaintedPath {
   class IsAbsoluteSanitizer extends TaintTracking::LabeledSanitizerGuardNode {
     DataFlow::Node operand;
     boolean polarity;
+    boolean negatable;
 
     IsAbsoluteSanitizer() {
       exists (DataFlow::CallNode call | this = call |
         call = DataFlow::moduleMember("path", "isAbsolute").getACall() and
         operand = call.getArgument(0) and
-        polarity = true)
+        polarity = true and
+        negatable = true)
       or
-      exists (StartsWithCheck startsWith | this = startsWith |
-        startsWith.getSubstring().asExpr().getStringValue() = "/" + any(string s) and
+      exists (StartsWithCheck startsWith, string substring | this = startsWith |
+        startsWith.getSubstring().asExpr().getStringValue() = "/" + substring and
         operand = startsWith.getBaseString() and
-        polarity = startsWith.getPolarity())
+        polarity = startsWith.getPolarity() and
+        if substring = "" then
+          negatable = true
+        else
+          negatable = false) // !x.startsWith("/home") does not guarantee that x is not absolute 
     }
 
     override predicate sanitizes(boolean outcome, Expr e, DataFlow::FlowLabel label) {
@@ -472,6 +479,7 @@ module TaintedPath {
       exists (Label::UnixPath unixPath | unixPath = Label::toUnixPath(label) |
         outcome = polarity and unixPath.isRelative()
         or
+        negatable = true and
         outcome = polarity.booleanNot() and unixPath.isAbsolute()
       )
     }
