@@ -167,6 +167,20 @@ class MethodCallNode extends CallNode {
 /** A data flow node corresponding to a `new` expression. */
 class NewNode extends InvokeNode { override DataFlow::Impl::NewNodeDef impl; }
 
+/**
+ * Provides the implementation of `ThisNode.getBasicBlock()`.
+ *
+ * To avoid spurious negative recrusion, this override needs to be a class
+ * that does not extend `SourceNode`.
+ */
+private class ThisNodeBasicBlock extends DataFlow::Node {
+  ThisNodeBasicBlock() { DataFlow::thisNode(this, _) }
+
+  override BasicBlock getBasicBlock() {
+    exists(Function f | DataFlow::thisNode(this, f) | result = f.getEntryBB())
+  }
+}
+
 /** A data flow node corresponding to the `this` parameter in a function or `this` at the top-level. */
 class ThisNode extends DataFlow::Node, DataFlow::SourceNode {
   ThisNode() { DataFlow::thisNode(this, _) }

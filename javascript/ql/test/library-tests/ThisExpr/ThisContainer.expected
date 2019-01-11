@@ -1,0 +1,43 @@
+| tst.js:1:16:1:15 | this | tst.js:1:16:1:15 | entry node of () {} | tst.js:1:16:1:15 | () {} |
+| tst.js:3:7:3:6 | this | tst.js:3:7:3:6 | entry node of () {\\n   ... ;\\n    } | tst.js:3:7:5:5 | () {\\n   ... ;\\n    } |
+| tst.js:7:7:7:6 | this | tst.js:7:7:7:6 | entry node of () {\\n   ... ;\\n    } | tst.js:7:7:9:5 | () {\\n   ... ;\\n    } |
+| tst.js:13:14:13:13 | this | tst.js:13:14:13:13 | entry node of () {} | tst.js:13:14:13:13 | () {} |
+| tst.js:15:13:15:12 | this | tst.js:15:13:15:12 | entry node of () {\\n   ... ;\\n    } | tst.js:15:13:19:5 | () {\\n   ... ;\\n    } |
+| tst.js:16:10:16:9 | this | tst.js:16:10:16:9 | entry node of functio ...       } | tst.js:16:10:18:9 | functio ...       } |
+| tst.js:21:13:21:12 | this | tst.js:21:13:21:12 | entry node of () {\\n   ... ;\\n    } | tst.js:21:13:26:5 | () {\\n   ... ;\\n    } |
+| tst.js:23:10:23:9 | this | tst.js:23:10:23:9 | entry node of functio ...       } | tst.js:23:10:25:9 | functio ...       } |
+| tst.js:28:13:28:12 | this | tst.js:28:13:28:12 | entry node of () {\\n   ... ;\\n    } | tst.js:28:13:33:5 | () {\\n   ... ;\\n    } |
+| tst.js:29:9:29:8 | this | tst.js:29:9:29:8 | entry node of functio ...       } | tst.js:29:9:31:9 | functio ...       } |
+| tst.js:35:13:35:12 | this | tst.js:35:13:35:12 | entry node of () {\\n   ... ;\\n    } | tst.js:35:13:41:5 | () {\\n   ... ;\\n    } |
+| tst.js:36:10:36:9 | this | tst.js:36:10:36:9 | entry node of functio ...       } | tst.js:36:10:40:9 | functio ...       } |
+| tst.js:37:14:37:13 | this | tst.js:37:14:37:13 | entry node of functio ...       } | tst.js:37:14:39:13 | functio ...       } |
+| tst.js:45:14:45:13 | this | tst.js:45:14:45:13 | entry node of () {} | tst.js:45:14:45:13 | () {} |
+| tst.js:47:13:47:12 | this | tst.js:47:13:47:12 | entry node of () {\\n   ... ;\\n    } | tst.js:47:13:51:5 | () {\\n   ... ;\\n    } |
+| tst.js:48:10:48:9 | this | tst.js:48:10:48:9 | entry node of functio ...       } | tst.js:48:10:50:9 | functio ...       } |
+| tst.js:55:15:55:14 | this | tst.js:55:15:55:14 | entry node of () {} | tst.js:55:15:55:14 | () {} |
+| tst.js:57:13:57:12 | this | tst.js:57:13:57:12 | entry node of () {\\n   ... ;\\n    } | tst.js:57:13:62:5 | () {\\n   ... ;\\n    } |
+| tst.js:59:10:59:9 | this | tst.js:59:10:59:9 | entry node of functio ...       } | tst.js:59:10:61:9 | functio ...       } |
+| tst.js:66:13:66:12 | this | tst.js:66:13:66:12 | entry node of () {} | tst.js:66:13:66:12 | () {} |
+| tst.js:68:13:68:12 | this | tst.js:68:13:68:12 | entry node of () {\\n   ... ;\\n    } | tst.js:68:13:72:5 | () {\\n   ... ;\\n    } |
+| tst.js:69:15:69:14 | this | tst.js:69:15:69:14 | entry node of functio ...       } | tst.js:69:15:71:9 | functio ...       } |
+| tst.js:74:13:74:12 | this | tst.js:74:13:74:12 | entry node of () {\\n   ... )\\n    } | tst.js:74:13:79:5 | () {\\n   ... )\\n    } |
+| tst.js:76:10:76:9 | this | tst.js:76:10:76:9 | entry node of functio ...       } | tst.js:76:10:78:9 | functio ...       } |
+| tst.js:83:22:83:21 | this | tst.js:83:22:83:21 | entry node of () {} | tst.js:83:22:83:21 | () {} |
+| tst.js:85:13:85:12 | this | tst.js:85:13:85:12 | entry node of () {\\n   ... `\\n    } | tst.js:85:13:93:5 | () {\\n   ... `\\n    } |
+| tst.js:87:21:87:20 | this | tst.js:87:21:87:20 | entry node of functio ...       } | tst.js:87:21:89:13 | functio ...       } |
+| tst.js:95:13:95:12 | this | tst.js:95:13:95:12 | entry node of () {\\n   ... ;\\n    } | tst.js:95:13:100:5 | () {\\n   ... ;\\n    } |
+| tst.js:96:9:96:8 | this | tst.js:96:9:96:8 | entry node of functio ...       } | tst.js:96:9:98:9 | functio ...       } |
+| tst.js:105:20:105:19 | this | tst.js:105:20:105:19 | entry node of () {} | tst.js:105:20:105:19 | () {} |
+| tst.js:107:13:107:12 | this | tst.js:107:13:107:12 | entry node of () {\\n   ... ;\\n    } | tst.js:107:13:111:5 | () {\\n   ... ;\\n    } |
+| tst.js:108:18:108:17 | this | tst.js:108:18:108:17 | entry node of functio ...       } | tst.js:108:18:110:9 | functio ...       } |
+| tst.js:113:13:113:12 | this | tst.js:113:13:113:12 | entry node of () {\\n   ... ;\\n    } | tst.js:113:13:117:5 | () {\\n   ... ;\\n    } |
+| tst.js:114:21:114:20 | this | tst.js:114:21:114:20 | entry node of functio ...       } | tst.js:114:21:116:9 | functio ...       } |
+| tst.js:119:13:119:12 | this | tst.js:119:13:119:12 | entry node of () {\\n   ... ;\\n    } | tst.js:119:13:123:5 | () {\\n   ... ;\\n    } |
+| tst.js:120:27:120:26 | this | tst.js:120:27:120:26 | entry node of functio ...       } | tst.js:120:27:122:9 | functio ...       } |
+| tst.js:128:16:128:15 | this | tst.js:128:16:128:15 | entry node of () {} | tst.js:128:16:128:15 | () {} |
+| tst.js:130:13:130:12 | this | tst.js:130:13:130:12 | entry node of () {\\n   ... ;\\n    } | tst.js:130:13:134:5 | () {\\n   ... ;\\n    } |
+| tst.js:131:18:131:17 | this | tst.js:131:18:131:17 | entry node of functio ...       } | tst.js:131:18:133:9 | functio ...       } |
+| tst.js:136:13:136:12 | this | tst.js:136:13:136:12 | entry node of () {\\n   ... ;\\n    } | tst.js:136:13:140:5 | () {\\n   ... ;\\n    } |
+| tst.js:137:21:137:20 | this | tst.js:137:21:137:20 | entry node of functio ...       } | tst.js:137:21:139:9 | functio ...       } |
+| tst.js:142:13:142:12 | this | tst.js:142:13:142:12 | entry node of () {\\n   ... ;\\n    } | tst.js:142:13:146:5 | () {\\n   ... ;\\n    } |
+| tst.js:143:23:143:22 | this | tst.js:143:23:143:22 | entry node of functio ...       } | tst.js:143:23:145:9 | functio ...       } |
