@@ -509,7 +509,7 @@ class ClassNode extends DataFlow::SourceNode {
   /**
    * Gets an instance method with the given name, if any.
    */
-  FunctionNode getInstanceMethod(string name) { result = impl.getInstanceMethod(name) }
+  FunctionNode getAnInstanceMethod(string name) { result = impl.getAnInstanceMethod(name) }
 
   /**
    * Gets an instance method of this class.
@@ -521,7 +521,7 @@ class ClassNode extends DataFlow::SourceNode {
   /**
    * Gets the static method of this class with the given name.
    */
-  FunctionNode getStaticMethod(string name) { result = impl.getStaticMethod(name) }
+  FunctionNode getAStaticMethod(string name) { result = impl.getAStaticMethod(name) }
 
   /**
    * Gets a static method of this class.
@@ -557,7 +557,7 @@ module ClassNode {
     /**
      * Gets an instance method with the given name, if any.
      */
-    abstract FunctionNode getInstanceMethod(string name);
+    abstract FunctionNode getAnInstanceMethod(string name);
 
     /**
      * Gets an instance method of this class.
@@ -569,7 +569,7 @@ module ClassNode {
     /**
      * Gets the static method of this class with the given name.
      */
-    abstract FunctionNode getStaticMethod(string name);
+    abstract FunctionNode getAStaticMethod(string name);
 
     /**
      * Gets a static method of this class.
@@ -591,11 +591,10 @@ module ClassNode {
 
     override FunctionNode getConstructor() { result = astNode.getConstructor().getBody().flow() }
 
-    override FunctionNode getInstanceMethod(string name) {
+    override FunctionNode getAnInstanceMethod(string name) {
       exists(MethodDeclaration method |
         method = astNode.getMethod(name) and
         not method.isStatic() and
-        not method.isAmbient() and
         not method instanceof ConstructorDeclaration and
         result = method.getBody().flow()
       )
@@ -605,17 +604,15 @@ module ClassNode {
       exists(MethodDeclaration method |
         method = astNode.getAMethod() and
         not method.isStatic() and
-        not method.isAmbient() and
         not method instanceof ConstructorDeclaration and
         result = method.getBody().flow()
       )
     }
 
-    override FunctionNode getStaticMethod(string name) {
+    override FunctionNode getAStaticMethod(string name) {
       exists(MethodDeclaration method |
         method = astNode.getMethod(name) and
         method.isStatic() and
-        not method.isAmbient() and
         result = method.getBody().flow()
       )
       or
@@ -626,7 +623,6 @@ module ClassNode {
       exists(MethodDeclaration method |
         method = astNode.(ClassDefinition).getAMethod() and
         method.isStatic() and
-        not method.isAmbient() and
         result = method.getBody().flow()
       )
     }
@@ -646,7 +642,7 @@ module ClassNode {
 
     override FunctionNode getConstructor() { result = this }
 
-    override FunctionNode getInstanceMethod(string name) {
+    override FunctionNode getAnInstanceMethod(string name) {
       result = getAPrototypeReference().getAPropertyWrite(name).getRhs().getALocalSource()
     }
 
@@ -654,7 +650,7 @@ module ClassNode {
       result = getAPrototypeReference().getAPropertyWrite().getRhs().getALocalSource()
     }
 
-    override FunctionNode getStaticMethod(string name) {
+    override FunctionNode getAStaticMethod(string name) {
       result = getAPropertyWrite(name).getRhs().getALocalSource()
     }
 
