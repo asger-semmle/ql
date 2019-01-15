@@ -11,56 +11,65 @@
 
 import javascript
 
-/** Holds if `base` declares or inherits method `m` with the given `name`. */
-predicate hasMethod(ClassDefinition base, string name, MethodDefinition m) {
-  m = base.getMethod(name) or
-  hasMethod(base.getSuperClassDefinition(), name, m)
+/** Holds if `cls` declares or inherits method `m` with the given `name`. */
+DataFlow::FunctionNode getMethod(DataFlow::ClassNode cls, string name, string kind) {
+  result = cls.getADirectSuperClass*().getAnInstanceMethod(name) and kind = "instance"
+  or
+  result = cls.getAStaticMethod(name) and kind = "static"
+}
+
+/** Holds if `cls` declares method `m` with the given `name`. */
+DataFlow::FunctionNode getOwnMethod(DataFlow::ClassNode cls, string name, string kind) {
+  result = cls.getAnInstanceMethod(name) and kind = "instance"
+  or
+  result = cls.getAStaticMethod(name) and kind = "static"
 }
 
 /**
- * Holds if `access` is in`fromMethod`, and it references `toMethod` through `this`,
- * where `fromMethod` and `toMethod` are of kind `fromKind` and `toKind`, respectively.
+ * Gets the AST node to use as alert location for the given method.
  */
-predicate isLocalMethodAccess(
-  PropAccess access, MethodDefinition fromMethod, string fromKind, MethodDefinition toMethod,
-  string toKind
-) {
-  hasMethod(fromMethod.getDeclaringClass(), access.getPropertyName(), toMethod) and
-  access.getEnclosingFunction() = fromMethod.getBody() and
-  access.getBase() instanceof ThisExpr and
-  fromKind = getKind(fromMethod) and
-  toKind = getKind(toMethod)
-}
-
-string getKind(MethodDefinition m) {
-  if m.isStatic() then result = "static" else result = "instance"
+ASTNode getNode(DataFlow::FunctionNode method) {
+  exists(MethodDeclaration decl |
+    decl.getBody() = method.getAstNode() and
+    result = decl
+  )
+  or
+  exists(ValueProperty prop |
+    prop.getInit() = method.asExpr() and
+    prop.isMethod() and
+    result = prop
+  )
+  or
+  not exists(MethodDeclaration decl | decl.getBody() = method.getAstNode()) and
+  not exists(ValueProperty prop | prop.getInit() = method.asExpr() and prop.isMethod()) and
+  result = method.getAstNode()
 }
 
 from
-  PropAccess access, MethodDefinition fromMethod, MethodDefinition toMethod, string fromKind,
-  string toKind
+  DataFlow::ClassNode class_,
+  DataFlow::PropRead access, DataFlow::FunctionNode fromMethod, DataFlow::FunctionNode toMethod, string fromKind,
+  string toKind, string fromName
 where
-  isLocalMethodAccess(access, fromMethod, fromKind, toMethod, toKind) and
+  fromMethod = getOwnMethod(class_, fromName, fromKind) and
+  access = fromMethod.getReceiver().getAPropertyRead() and
+  toMethod = getMethod(class_, access.getPropertyName(), toKind) and
   toKind != fromKind and
   // exceptions
   not (
     // the class has a second member with the same name and the right kind
-    isLocalMethodAccess(access, fromMethod, _, _, fromKind)
+    exists(getMethod(class_, access.getPropertyName(), fromKind))
     or
     // there is a dynamically assigned second member with the same name and the right kind
-    exists(AnalyzedPropertyWrite apw, AbstractClass declaringClass, AbstractValue base |
+    exists(AnalyzedPropertyWrite apw, AbstractCallable declaringClass, AbstractValue base |
       "static" = fromKind and base = declaringClass
       or
       "instance" = fromKind and base = TAbstractInstance(declaringClass)
     |
-      declaringClass = TAbstractClass(fromMethod.getDeclaringClass()) and
+      declaringClass.getFunction() = class_.getConstructor().getAstNode() and
       apw.writes(base, access.getPropertyName(), _)
     )
-    or
-    // the access is an assignment, probably deliberate
-    access instanceof LValue
   )
 select access,
   "Access to " + toKind + " method $@ from " + fromKind +
-    " method $@ is not possible through `this`.", toMethod, toMethod.getName(), fromMethod,
-  fromMethod.getName()
+    " method $@ is not possible through `this`.", getNode(toMethod), access.getPropertyName(), getNode(fromMethod),
+  fromName
