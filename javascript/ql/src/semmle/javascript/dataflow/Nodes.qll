@@ -485,6 +485,8 @@ DataFlow::SourceNode moduleMember(string path, string m) {
  *   method: function() {}
  * });
  * ```
+ *
+ * Additional patterns can be recognized as class nodes, by extending `DataFlow::ClassNode::Range`.
  */
 class ClassNode extends DataFlow::SourceNode {
   ClassNode::Range impl;
@@ -507,24 +509,28 @@ class ClassNode extends DataFlow::SourceNode {
   FunctionNode getConstructor() { result = impl.getConstructor() }
 
   /**
-   * Gets an instance method with the given name, if any.
+   * Gets an instance method declared in this class, with the given name, if any.
+   *
+   * Does not include methods from superclasses.
    */
   FunctionNode getAnInstanceMethod(string name) { result = impl.getAnInstanceMethod(name) }
 
   /**
-   * Gets an instance method of this class.
+   * Gets an instance method declared in this class.
    *
    * The constructor is not considered an instance method.
+   *
+   * Does not include methods from superclasses.
    */
   FunctionNode getAnInstanceMethod() { result = impl.getAnInstanceMethod() }
 
   /**
-   * Gets the static method of this class with the given name.
+   * Gets the static method declared in this class with the given name.
    */
   FunctionNode getAStaticMethod(string name) { result = impl.getAStaticMethod(name) }
 
   /**
-   * Gets a static method of this class.
+   * Gets a static method declared in this class.
    *
    * The constructor is not considered a static method.
    */
@@ -616,7 +622,7 @@ module ClassNode {
         result = method.getBody().flow()
       )
       or
-      result = getAPropertyWrite(name).getRhs().getALocalSource()
+      result = getAPropertySource(name)
     }
 
     override FunctionNode getAStaticMethod() {
@@ -643,7 +649,7 @@ module ClassNode {
     override FunctionNode getConstructor() { result = this }
 
     override FunctionNode getAnInstanceMethod(string name) {
-      result = getAPrototypeReference().getAPropertyWrite(name).getRhs().getALocalSource()
+      result = getAPrototypeReference().getAPropertySource(name)
     }
 
     override FunctionNode getAnInstanceMethod() {
@@ -651,7 +657,7 @@ module ClassNode {
     }
 
     override FunctionNode getAStaticMethod(string name) {
-      result = getAPropertyWrite(name).getRhs().getALocalSource()
+      result = getAPropertySource(name)
     }
 
     override FunctionNode getAStaticMethod() {
