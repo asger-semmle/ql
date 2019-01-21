@@ -167,6 +167,16 @@ class SourceNode extends DataFlow::Node {
       dst = src.append(summary)
     )
   }
+
+  /**
+   * Gets a node that may flow into this one using one heap and/or interprocedural step.
+   *
+   * The `track` parameter describes how the value flows there and is needed to avoid
+   * call/return mismatching. 
+   */
+  DataFlow::SourceNode backtrack(TrackSummary src, TrackSummary dst) {
+    this = result.track(src, dst)
+  }
 }
 
 module SourceNode {

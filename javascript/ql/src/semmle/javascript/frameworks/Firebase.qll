@@ -49,40 +49,85 @@ module Firebase {
     result = database(_)
   }
 
-  /** Gets a call to `ref` or `refFromURL` on a firebase database. */
+  /** Gets a node that refers to a `Reference` object, such as `firebase.database().ref()`. */
   DataFlow::SourceNode ref(DataFlow::TrackSummary t) {
     t.start() and
-    exists (string name | result = database().getAMethodCall(name) |
-      name = "ref" or
-      name = "refFromURL"
-    )
-    or
-    t.start() and
-    exists (string name | result = ref(_).getAMethodCall(name) |
-      name = "push" or
-      name = "child"
+    (
+      exists (string name | result = database().getAMethodCall(name) |
+        name = "ref" or
+        name = "refFromURL"
+      )
+      or
+      exists (string name | result = ref(_).getAMethodCall(name) |
+        name = "push" or
+        name = "child"
+      )
+      or
+      exists (string name | result = ref(_).getAPropertyRead(name) |
+        name = "parent" or
+        name = "root"
+      )
+      or
+      result = snapshot().getAMethodCall("ref")
     )
     or
     exists (DataFlow::TrackSummary t2 |
       result = ref(t2).track(t2, t)
     )
   }
-  
+
+  /** Gets a node that refers to a `Reference` object, such as `firebase.database().ref()`. */
   DataFlow::SourceNode ref() {
     result = ref(_)
   }
+  
+  /**
+   * A call of form `ref.on(...)` or `ref.once(...)`.
+   */
+  class RefListenCall extends DataFlow::MethodCallNode {
+    RefListenCall() {
+      this = ref().getAMethodCall() and
+      (getMethodName() = "on" or getMethodName() = "once")
+    }
 
+    DataFlow::Node getCallbackNode() {
+      result = getArgument(1)
+    }
+  }
+
+  /**
+   * Gets a value that will be invoked with a `DataSnapshot` value as its first parameter.
+   */
+  DataFlow::SourceNode snapshotCallback(DataFlow::TrackSummary t) {
+    t.start() and
+    result = any(RefListenCall call).getCallbackNode().getALocalSource()
+    or
+    exists (DataFlow::TrackSummary t2 |
+      result = snapshotCallback(t2).backtrack(t2, t)
+    )      
+  }
+
+  /**
+   * Gets a value that will be invoked with a `DataSnapshot` value as its first parameter.
+   */
+  DataFlow::SourceNode snapshotCallback() {
+    result = snapshotCallback(_)
+  }
+
+  /**
+   * Gets a node that refers to a `DataSnapshot` value, such as `x` in
+   * `firebase.database().ref().on('value', x => {...})`.
+   */
   DataFlow::SourceNode snapshot(DataFlow::TrackSummary t) {
     t.start() and
-    exists (DataFlow::MethodCallNode call |
-      call = ref().getAMethodCall() and
-      (call.getMethodName() = "on" or call.getMethodName() = "once") and
-      call.getArgument(0).asExpr().getStringValue() = "value" and
-      (
-        result = call // returns promise
-        or
-        result = call.getCallback(1).getParameter(0)
-      )
+    (
+      result = snapshotCallback().(DataFlow::FunctionNode).getParameter(0)
+      or
+      result instanceof RefListenCall // returns promise
+      or
+      result = snapshot(_).getAMethodCall("child")
+      or
+      result = snapshot(_).getAMethodCall("forEach").getCallback(0).getParameter(0)
     )
     or
     promiseTaintStep(snapshot(t), result)
@@ -92,13 +137,20 @@ module Firebase {
     )
   }
 
+  /**
+   * Gets a node that refers to a `DataSnapshot` value, such as `x` in
+   * `firebase.database().ref().on('value', x => {...})`.
+   */
   DataFlow::SourceNode snapshot() {
     result = snapshot(_)
   }
   
   class FirebaseVal extends RemoteFlowSource {
     FirebaseVal() {
-      this = snapshot().getAMethodCall("val")
+      exists (string name | this = snapshot().getAMethodCall(name) |
+        name = "val" or
+        name = "exportVal"
+      )
     }
 
     override string getSourceType() {

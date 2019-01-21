@@ -100,7 +100,8 @@ module TrackSummary {
     // Flow from this.xxx in constructor to this.xxx in method.
     exists (DataFlow::ClassNode class_, string prop |
       class_.getConstructor().getReceiver().getAPropertySource(prop) = pred and
-      succ = class_.getAnInstanceMethod().getReceiver().getAPropertyRead(prop)
+      succ = class_.getAnInstanceMethod().getReceiver().getAPropertyRead(prop) and
+      summary = level()
     )
   }
 }
