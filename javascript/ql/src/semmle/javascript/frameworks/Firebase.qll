@@ -104,7 +104,7 @@ module Firebase {
     or
     exists (DataFlow::TrackSummary t2 |
       result = snapshotCallback(t2).backtrack(t2, t)
-    )      
+    )
   }
 
   /**

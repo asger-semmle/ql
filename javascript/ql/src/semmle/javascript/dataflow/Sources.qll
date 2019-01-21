@@ -159,10 +159,10 @@ class SourceNode extends DataFlow::Node {
    * Gets a node that this node may flow to using one heap and/or interprocedural step.
    *
    * The `track` parameter describes how the value flows there and is needed to avoid
-   * call/return mismatching. 
+   * call/return mismatching.
    */
   DataFlow::SourceNode track(TrackSummary src, TrackSummary dst) {
-    exists (TrackSummary summary |
+    exists(TrackSummary summary |
       TrackSummary::step(this, result, summary) and
       dst = src.append(summary)
     )
@@ -172,7 +172,7 @@ class SourceNode extends DataFlow::Node {
    * Gets a node that may flow into this one using one heap and/or interprocedural step.
    *
    * The `track` parameter describes how the value flows there and is needed to avoid
-   * call/return mismatching. 
+   * call/return mismatching.
    */
   DataFlow::SourceNode backtrack(TrackSummary src, TrackSummary dst) {
     this = result.track(src, dst)
