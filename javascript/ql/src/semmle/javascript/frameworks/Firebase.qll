@@ -50,128 +50,59 @@ module Firebase {
   }
 
   /** Gets a call to `ref` or `refFromURL` on a firebase database. */
-  DataFlow::SourceNode refSource() {
+  DataFlow::SourceNode ref(DataFlow::TrackSummary t) {
+    t.start() and
     exists (string name | result = database().getAMethodCall(name) |
       name = "ref" or
       name = "refFromURL"
     )
+    or
+    t.start() and
+    exists (string name | result = ref(_).getAMethodCall(name) |
+      name = "push" or
+      name = "child"
+    )
+    or
+    exists (DataFlow::TrackSummary t2 |
+      result = ref(t2).track(t2, t)
+    )
   }
   
-  private predicate hasFirebaseTaintSource() {
-    exists(refSource())
+  DataFlow::SourceNode ref() {
+    result = ref(_)
   }
 
-  private class FirebaseRefSource extends DataFlow::AdditionalSource {
-    FirebaseRefSource() {
-      this = refSource()
-    }
-
-    override predicate isSourceFor(DataFlow::Configuration config, DataFlow::FlowLabel label) {
-      label = "firebase-ref"
-    }
-  }
-  
-  /**
-   * Label representing a Firebase reference or a "value" event response from such a reference.
-   */
-  class FirebaseRefLabel extends DataFlow::FlowLabel {
-    FirebaseRefLabel() {
-      hasFirebaseTaintSource() and
-      this = "firebase-ref"
-    }
-  }
-
-  /**
-   * A step `ref -> ref.val()`, transforming a firebase ref to a tainted value.
-   */
-  class ValStep extends DataFlow::AdditionalFlowStep, DataFlow::MethodCallNode {
-    ValStep() {
-      hasFirebaseTaintSource() and
-      getMethodName() = "val" and
-      getNumArgument() = 0
-    }
-  
-    override predicate step(
-      DataFlow::Node pred, DataFlow::Node succ, DataFlow::FlowLabel predlbl,
-      DataFlow::FlowLabel succlbl
-    ) {
-      predlbl = "firebase-ref" and
-      succlbl = DataFlow::FlowLabel::taint() and
-      pred = getReceiver() and
-      succ = this
-    }
-  }
-
-  /**
-   * A step `ref -> ref.child()` or `ref -> ref.push()`, returning a new firebase ref.
-   */
-  class RefChildStep extends DataFlow::AdditionalFlowStep, DataFlow::MethodCallNode {
-    RefChildStep() {
-      hasFirebaseTaintSource() and
-      exists (string name | name = getMethodName() |
-        name = "child" and
-        getNumArgument() = 1
-        or
-        name = "push" and
-        getNumArgument() = 0
-      )
-    }
-  
-    override predicate step(
-      DataFlow::Node pred, DataFlow::Node succ, DataFlow::FlowLabel predlbl,
-      DataFlow::FlowLabel succlbl
-    ) {
-      predlbl = "firebase-ref" and
-      succlbl = "firebase-ref" and
-      pred = getReceiver() and
-      succ = this
-    }
-  }
-
-  /**
-   * A step from `x` to `y` in `x.on("value", y => ...)`.
-   */
-  class RefListenerStep extends DataFlow::AdditionalFlowStep, DataFlow::MethodCallNode {
-    RefListenerStep() {
-      hasFirebaseTaintSource() and
-      (getMethodName() = "on" or getMethodName() = "once") and
-      getArgument(0).asExpr().getStringValue() = "value"
-    }
-  
-    override predicate step(
-      DataFlow::Node pred, DataFlow::Node succ, DataFlow::FlowLabel predlbl,
-      DataFlow::FlowLabel succlbl
-    ) {
-      predlbl = "firebase-ref" and
-      succlbl = "firebase-ref" and
-      pred = getReceiver() and
+  DataFlow::SourceNode snapshot(DataFlow::TrackSummary t) {
+    t.start() and
+    exists (DataFlow::MethodCallNode call |
+      call = ref().getAMethodCall() and
+      (call.getMethodName() = "on" or call.getMethodName() = "once") and
+      call.getArgument(0).asExpr().getStringValue() = "value" and
       (
-        succ = this // returns promise
+        result = call // returns promise
         or
-        succ = getCallback(1).getParameter(0)
+        result = call.getCallback(1).getParameter(0)
       )
-    }
+    )
+    or
+    promiseTaintStep(snapshot(t), result)
+    or
+    exists (DataFlow::TrackSummary t2 |
+      result = ref(t2).track(t2, t)
+    )
   }
 
-  /**
-   * A step from `x` to `y` in `x.then(y => {})`.
-   */
-  class RefPromiseStep extends DataFlow::AdditionalFlowStep, DataFlow::MethodCallNode {
-    DataFlow::Node dst;
-
-    RefPromiseStep() {
-      hasFirebaseTaintSource() and
-      promiseTaintStep(this, dst)
-    }
+  DataFlow::SourceNode snapshot() {
+    result = snapshot(_)
+  }
   
-    override predicate step(
-      DataFlow::Node pred, DataFlow::Node succ, DataFlow::FlowLabel predlbl,
-      DataFlow::FlowLabel succlbl
-    ) {
-      predlbl = "firebase-ref" and
-      succlbl = "firebase-ref" and
-      pred = this and
-      succ = dst
+  class FirebaseVal extends RemoteFlowSource {
+    FirebaseVal() {
+      this = snapshot().getAMethodCall("val")
+    }
+
+    override string getSourceType() {
+      result = "Firebase database"
     }
   }
 }
