@@ -1,37 +1,52 @@
 import javascript
 
 module Firebase {
-
-  private DataFlow::SourceNode getANonLocalSuccessor(DataFlow::SourceNode node) {
-    exists (DataFlow::ClassNode class_, string prop |
-      class_.getConstructor().getReceiver().getAPropertySource(prop) = node and
-      result = class_.getAnInstanceMethod().getReceiver().getAPropertyRead(prop)
+  
+  /** Gets a reference to the firebase API object. */
+  private DataFlow::SourceNode firebase(DataFlow::TrackSummary t) {
+    result = DataFlow::moduleImport("firebase/app") and t.start()
+    or
+    result = DataFlow::globalVarRef("firebase") and t.start()
+    or
+    exists (DataFlow::TrackSummary t2 |
+      result = firebase(t2).track(t2, t)
     )
   }
 
   /** Gets a reference to the firebase API object. */
-  private DataFlow::SourceNode firebase() {
-    result = DataFlow::moduleImport("firebase/app")
-    or
-    result = DataFlow::globalVarRef("firebase")
-    or
-    result = getANonLocalSuccessor(firebase())
+  DataFlow::SourceNode firebase() {
+    result = firebase(_)
   }
 
-  /** Gets a reference to a firebase app. */
+  /** Gets a reference to a firebase app created with `initializeApp`. */
+  private DataFlow::SourceNode initApp(DataFlow::TrackSummary t) {
+    result = firebase().getAMethodCall("initializeApp") and t.start()
+    or
+    exists (DataFlow::TrackSummary t2 |
+      result = initApp(t2).track(t2, t)
+    )
+  }
+
+  /**
+   * Gets a reference to a firebase app, either the `firebase` object or an
+   * app created explicitly with `initializeApp()`.
+   */
   DataFlow::SourceNode app() {
-    result = firebase()
+    result = firebase(_) or result = initApp(_)
+  }
+
+  /** Gets a reference to a firebase database object, such as `firebase.database()`. */
+  private DataFlow::SourceNode database(DataFlow::TrackSummary t) {
+    result = app().getAMethodCall("database") and t.start()
     or
-    result = firebase().getAMethodCall("initializeApp")
-    or
-    result = getANonLocalSuccessor(app())
+    exists (DataFlow::TrackSummary t2 |
+      result = database(t2).track(t2, t)
+    )
   }
 
   /** Gets a reference to a firebase database object, such as `firebase.database()`. */
   DataFlow::SourceNode database() {
-    result = app().getAMethodCall("database")
-    or
-    result = getANonLocalSuccessor(database())
+    result = database(_)
   }
 
   /** Gets a call to `ref` or `refFromURL` on a firebase database. */

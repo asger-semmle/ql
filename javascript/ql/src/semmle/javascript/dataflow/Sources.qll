@@ -7,6 +7,7 @@
  */
 
 import javascript
+import semmle.javascript.dataflow.TrackSummary
 
 /**
  * A source node for local data flow, that is, a node from which local data flow is tracked.
@@ -152,6 +153,19 @@ class SourceNode extends DataFlow::Node {
    */
   DataFlow::SourceNode getAPropertySource(string prop) {
     result.flowsTo(getAPropertyWrite(prop).getRhs())
+  }
+
+  /**
+   * Gets a node that this node may flow to using one heap and/or interprocedural step.
+   *
+   * The `track` parameter describes how the value flows there and is needed to avoid
+   * call/return mismatching. 
+   */
+  DataFlow::SourceNode track(TrackSummary src, TrackSummary dst) {
+    exists (TrackSummary summary |
+      TrackSummary::step(this, result, summary) and
+      dst = src.append(summary)
+    )
   }
 }
 

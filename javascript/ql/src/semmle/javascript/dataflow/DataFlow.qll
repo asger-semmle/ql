@@ -1075,4 +1075,5 @@ module DataFlow {
   import TypeInference
   import Configuration
   import TrackedNodes
+  import TrackSummary
 }
