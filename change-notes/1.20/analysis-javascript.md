@@ -10,6 +10,8 @@
 
 * The taint tracking library now recognizes flow through persistent storage, class fields, and callbacks in certain cases. This may give more results for the security queries.
 
+* The [Closure-Library](https://github.com/google/closure-library/wiki/goog.module:-an-ES6-module-like-alternative-to-goog.provide) module system is now supported.
+
 ## New queries
 
 | **Query**                                     | **Tags**                                             | **Purpose**                                                                                                                                                                 |
