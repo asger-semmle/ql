@@ -181,7 +181,7 @@ module Firebase {
     result = ref().getAMethodCall("transaction").getArgument(0).getALocalSource()
     or
     exists (DataFlow::TrackSummary t2 |
-      result = snapshotCallback(t2).backtrack(t2, t)
+      result = transactionCallback(t2).backtrack(t2, t)
     )
   }
 
