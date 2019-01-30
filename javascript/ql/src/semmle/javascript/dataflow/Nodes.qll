@@ -598,6 +598,13 @@ class ClassNode extends DataFlow::SourceNode {
    */
   FunctionNode getAStaticMethod() { result = impl.getAStaticMethod() }
 
+  /** Gets an instance method or accessor or the class constructor. */
+  FunctionNode getAnInstanceMemberOrConstructor() {
+    result = getAnInstanceMember()
+    or
+    result = getConstructor()
+  }
+
   /**
    * Gets a direct super class of this class.
    */

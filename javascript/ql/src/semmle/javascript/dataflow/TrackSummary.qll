@@ -97,10 +97,10 @@ module TrackSummary {
       summary = return()
     )
     or
-    // Flow from this.xxx in constructor to this.xxx in method.
+    // Flow from field write to field read in a class
     exists (DataFlow::ClassNode class_, string prop |
-      class_.getConstructor().getReceiver().getAPropertySource(prop) = pred and
-      succ = class_.getAnInstanceMethod().getReceiver().getAPropertyRead(prop) and
+      class_.getAnInstanceMemberOrConstructor().getReceiver().getAPropertySource(prop) = pred and
+      succ = class_.getAnInstanceMemberOrConstructor().getReceiver().getAPropertyRead(prop) and
       summary = level()
     )
   }
