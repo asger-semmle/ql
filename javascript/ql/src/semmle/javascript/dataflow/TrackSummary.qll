@@ -97,11 +97,7 @@ module TrackSummary {
       summary = return()
     )
     or
-    // Flow from field write to field read in a class
-    exists (DataFlow::ClassNode class_, string prop |
-      class_.getAnInstanceMemberOrConstructor().getReceiver().getAPropertySource(prop) = pred and
-      succ = class_.getAnInstanceMemberOrConstructor().getReceiver().getAPropertyRead(prop) and
-      summary = level()
-    )
+    fieldStep(pred, succ) and
+    summary = level()
   }
 }

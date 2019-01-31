@@ -237,6 +237,17 @@ predicate loadStep(DataFlow::Node pred, DataFlow::PropRead succ, string prop) {
 }
 
 /**
+ * Holds if there is a step from `pred` to `succ` through an instance field,
+ * possibly from one method body to another.
+ */
+predicate fieldStep(DataFlow::SourceNode pred, DataFlow::SourceNode succ) {
+  exists (DataFlow::ClassNode class_, string prop |
+    class_.getAnInstanceMemberOrConstructor().getReceiver().getAPropertySource(prop) = pred and
+    succ = class_.getAnInstanceMemberOrConstructor().getReceiver().getAPropertyRead(prop)
+  )
+}
+
+/**
  * Holds if there is a higher-order call with argument `arg`, and `cb` is the local
  * source of an argument that flows into the callee position of that call:
  *
