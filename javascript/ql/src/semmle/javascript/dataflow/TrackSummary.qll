@@ -99,5 +99,8 @@ module TrackSummary {
     or
     fieldStep(pred, succ) and
     summary = level()
+    or
+    dynamicArrayStep(pred, succ) and
+    summary = level()
   }
 }

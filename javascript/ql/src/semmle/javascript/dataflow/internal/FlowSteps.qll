@@ -237,6 +237,49 @@ predicate loadStep(DataFlow::Node pred, DataFlow::PropRead succ, string prop) {
 }
 
 /**
+ * Holds if the value in `src` is stored in `array`, and the array is likely
+ * a homogenous array.
+ */
+predicate dynamicArrayStore(DataFlow::SourceNode array, DataFlow::SourceNode src) {
+  src = array.getAMethodCall("push").getAnArgument()
+}
+
+/**
+ * Holds if the value `dst` is obtained from `array`, and the array is likely
+ * a homogenous array (see `dynamicArrayStep`).
+ */
+predicate dynamicArrayLoad(DataFlow::SourceNode array, DataFlow::SourceNode dst) {
+  exists (string name | dst = array.getAMethodCall(name).getCallback(0).getParameter(0) |
+    name = "every" or
+    name = "filter" or
+    name = "forEach" or
+    name = "map" or
+    name = "some"
+  )
+  or
+  dst = array.getAMethodCall("pop")
+}
+
+/**
+ * Holds if the value in `src` may flow to `dst` through a pair of dynamic array
+ * accesses on a homogenous array. A homogenous array is one that has similar values
+ * in each entry (for the purpose of type inference and taint tracking) as opposed to
+ * an array that is used as a tuple.
+ */
+predicate dynamicArrayStep(DataFlow::SourceNode src, DataFlow::SourceNode dst) {
+  exists (DataFlow::SourceNode array |
+    dynamicArrayStore(array, src) and
+    dynamicArrayLoad(array, dst)
+  )
+  or
+  // step from `this.arr.push(x)` to `this.arr.pop()`.
+  exists (DataFlow::ClassNode cls, string prop |
+    dynamicArrayStore(cls.getAnInstanceMemberOrConstructor().getReceiver().getAPropertyRead(prop), src) and
+    dynamicArrayLoad(cls.getAnInstanceMemberOrConstructor().getReceiver().getAPropertyRead(prop), dst)
+  )
+}
+
+/**
  * Holds if there is a step from `pred` to `succ` through an instance field,
  * possibly from one method body to another.
  */
