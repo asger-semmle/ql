@@ -472,9 +472,10 @@ private predicate exploratoryFlowStep(
   basicFlowStep(pred, succ, _, cfg) or
   basicStoreStep(pred, succ, _) or
   loadStep(pred, succ, _) or
-  // the following two disjuncts taken together over-approximate flow through
+  // the following three disjuncts taken together over-approximate flow through
   // higher-order calls
   callback(pred, succ) or
+  dynamicArrayStep(pred, succ) or
   succ = pred.(DataFlow::FunctionNode).getAParameter()
 }
 
@@ -733,6 +734,12 @@ predicate higherOrderCall(
     callback.flowsTo(cbArg) and
     // Prepend a 'return' summary to prevent context-dependent values (i.e. parameters) from using this edge.
     summary = PathSummary::return().append(oldSummary)
+  )
+  or
+  // Storing callback in a list of callbacks (event emitter/observable pattern)
+  exists(DataFlow::SourceNode innerCb |
+    higherOrderCall(arg, innerCb, i, cfg, summary) and
+    dynamicArrayStep(callback, innerCb)
   )
 }
 
