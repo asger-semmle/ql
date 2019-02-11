@@ -282,6 +282,9 @@ DataFlow::SourceNode globalObjectRef() {
   or
   // `require("global")`
   result = moduleImport("global")
+  or
+  // goog.global
+  result = globalVarRef("goog").getAPropertyRead("global")
 }
 
 /**
