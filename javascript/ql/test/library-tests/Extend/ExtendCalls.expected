@@ -1,3 +1,4 @@
+| closure.js:5:1:5:43 | checkSh ... , arg)) | OK |
 | tst.js:29:1:29:35 | checkSh ... arg())) | OK |
 | tst.js:30:1:30:36 | checkSh ... arg())) | OK |
 | tst.js:31:1:31:39 | checkSh ... arg())) | OK |
