@@ -424,6 +424,30 @@ private class RamdaPartialCall extends AdditionalPartialInvokeNode {
 }
 
 /**
+ * A partial call through `goog.bind`.
+ */
+private class ClosureBindCall extends AdditionalPartialInvokeNode {
+  ClosureBindCall() { this = Closure::moduleImport("goog.bind").getACall() }
+
+  override predicate isPartialArgument(DataFlow::Node callback, DataFlow::Node argument, int index) {
+    callback = getArgument(0) and
+    argument = getArgument(index + 2)
+  }
+}
+
+/**
+ * A partial call through `goog.partial`.
+ */
+private class ClosurePartialCall extends AdditionalPartialInvokeNode {
+  ClosurePartialCall() { this = Closure::moduleImport("goog.partial").getACall() }
+
+  override predicate isPartialArgument(DataFlow::Node callback, DataFlow::Node argument, int index) {
+    callback = getArgument(0) and
+    argument = getArgument(index + 1)
+  }
+}
+
+/**
  * Holds if there is a flow step from `pred` to `succ` described by `summary`
  * under configuration `cfg`.
  *
