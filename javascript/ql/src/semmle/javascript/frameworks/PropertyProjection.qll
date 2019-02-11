@@ -109,6 +109,10 @@ private class SimplePropertyProjection extends CustomPropertyProjection {
         callee = DataFlow::moduleMember("dotty", "get") and
         objectIndex = 0 and
         selectorIndex = 1
+        or
+        callee = Closure::moduleImport("goog.getObjectByName") and
+        objectIndex = 1 and
+        selectorIndex = 0
       )
     )
   }

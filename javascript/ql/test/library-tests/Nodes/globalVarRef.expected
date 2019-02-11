@@ -5,6 +5,7 @@
 | document | tst.js:4:1:4:22 | window. ... ocument |
 | global | tst2.js:7:1:7:6 | global |
 | global | tst2.js:8:1:8:6 | global |
+| goog | tst.js:5:1:5:4 | goog |
 | setTimeout | tst2.js:5:1:5:12 | g.setTimeout |
 | window | tst2.js:3:1:3:24 | require ... indow") |
 | window | tst.js:1:1:1:6 | window |

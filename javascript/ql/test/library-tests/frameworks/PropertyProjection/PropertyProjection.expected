@@ -1,3 +1,4 @@
+| closure.js:5:1:5:39 | goog.ge ... z', {}) | closure.js:5:37:5:38 | {} | closure.js:5:22:5:34 | 'foo.bar.baz' | true |
 | tst.js:6:1:6:17 | _.pick(o, s1, s2) | tst.js:6:8:6:8 | o | tst.js:6:11:6:12 | s1 | false |
 | tst.js:6:1:6:17 | _.pick(o, s1, s2) | tst.js:6:8:6:8 | o | tst.js:6:15:6:16 | s2 | false |
 | tst.js:7:1:7:14 | _.pickBy(o, s) | tst.js:7:10:7:10 | o | tst.js:7:13:7:13 | s | false |

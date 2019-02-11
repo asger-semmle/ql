@@ -122,7 +122,8 @@ private class ExtendCallShallow extends ExtendCall {
       callee = DataFlow::moduleImport("util-extend") or
       callee = DataFlow::moduleImport("utils-merge") or
       callee = DataFlow::moduleImport("xtend/mutable") or
-      callee = LodashUnderscore::member("extend")
+      callee = LodashUnderscore::member("extend") or
+      callee = Closure::moduleImport("goog.object.extend")
     )
   }
 
