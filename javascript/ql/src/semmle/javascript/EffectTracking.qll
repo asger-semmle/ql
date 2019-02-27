@@ -52,10 +52,10 @@ module EffectTracking {
       shouldSummarizeCalls() and
       (
         // Passed as argument
-        exists (DataFlow::Node arg, Function target, Parameter param |
+        exists (DataFlow::Node arg, Function target, DataFlow::ParameterNode param |
           FlowSteps::argumentPassing(invoke, arg, target, param) and
           value.flowsTo(arg) and
-          functionHasSideEffects(target, DataFlow::parameterNode(param)))
+          functionHasSideEffects(target, param))
         or
         // Captured by nested function
         exists (Function target |
@@ -129,10 +129,9 @@ module EffectTracking {
       shouldSummarizeCalls() and
       (
         // Passed as argument
-        exists (Function target, Parameter parm, DataFlow::Node arg |
-          FlowSteps::argumentPassing(invoke, arg, target, parm) and
+        exists (Function target, DataFlow::Node arg |
+          FlowSteps::argumentPassing(invoke, arg, target, calleeAlias) and
           value.flowsTo(arg) and
-          calleeAlias = DataFlow::parameterNode(parm) and
           result = getLastSideEffectInFunction(target, calleeAlias))
         or
         // Returned from function
