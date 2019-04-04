@@ -1,5 +1,6 @@
 import * as ts from "./typescript";
 import { Project } from "./common";
+import { AugmentedType } from "./type_table";
 
 /**
  * Interface that exposes some internal properties we rely on, as well as
@@ -58,8 +59,8 @@ let skipWhiteSpace = /(?:\s|\/\/.*|\/\*[^]*?\*\/)*/g;
  */
 function forEachNode(ast: ts.Node, callback: (node: ts.Node) => void) {
     function visit(node: ts.Node) {
-        ts.forEachChild(node, visit);
         callback(node);
+        ts.forEachChild(node, visit);
     }
     visit(ast);
 }
@@ -154,6 +155,74 @@ export function augmentAst(ast: AugmentedSourceFile, code: string, project: Proj
         }
     }
 
+    /**
+     * Try to assign a type ID to the children of `node`, based on the knowledge that `node` has
+     * the given `type`.
+     *
+     * We use this to speed up extraction of large nested object/array literals. The type of a literal
+     * is usually an anonymous structural type, and converting such a type to an ID is expensive if
+     * we do it independently for each nested literal. Instead, when we know the type of the outermost literal,
+     * we use this type to deduce the types of the child literals, and assign their type ID immediately.
+     *
+     * It is generally safe to "bail out" in this function when encountering a case we can't handle or
+     * isn't worth special-casing.
+     */
+    function propagateTypeToChildren(node: AugmentedNode, type: ts.Type) {
+        if ((type.flags & ts.TypeFlags.Object) === 0) return;
+        switch (node.kind) {
+            case ts.SyntaxKind.ObjectLiteralExpression: {
+                let objectLiteral = node as ts.ObjectLiteralExpression;
+                if (objectLiteral.properties == null) return;
+                for (let elm of objectLiteral.properties) {
+                    if (elm.kind !== ts.SyntaxKind.PropertyAssignment) continue;
+                    let name = elm.name;
+                    if (name.kind !== ts.SyntaxKind.Identifier) continue;
+                    let initializer = elm.initializer;
+                    if (!isContextuallyTypedNode(initializer)) continue;
+                    let propSymbol = typeChecker.getPropertyOfType(type, name.text);
+                    if (propSymbol == null) continue;
+                    let propType = typeChecker.getTypeOfSymbolAtLocation(propSymbol, name) as AugmentedType;
+                    if (propType == null) continue;
+                    let propTypeId = propType.$id;
+                    if (propTypeId != null) {
+                        initializer.$type = propTypeId;
+                        propagateTypeToChildren(initializer, propType);
+                    }
+                }
+                break;
+            }
+
+            case ts.SyntaxKind.ArrayLiteralExpression: {
+                // If the type of the array is a tuple type, use the tuple element types.
+                // Otherwise, just use the array type.
+                let objectTypeFlags = (type as ts.ObjectType).objectFlags;
+                let tupleTypeElements: ReadonlyArray<ts.Type>;
+                let fallbackType = type.getNumberIndexType();
+                if ((objectTypeFlags & ts.ObjectFlags.Tuple) === 0) {
+                    let tupleTypeRef = type as ts.TupleTypeReference;
+                    tupleTypeElements = tupleTypeRef.typeArguments;
+                }
+
+                let arrayLiteral = node as ts.ArrayLiteralExpression;
+                let elements = arrayLiteral.elements;
+                if (elements == null) return;
+                for (let i = 0; i < elements.length; ++i) {
+                    let elm = elements[i];
+                    if (!isContextuallyTypedNode(elm)) continue;
+                    let elmType = (tupleTypeElements != null && i < tupleTypeElements.length)
+                            ? tupleTypeElements[i] as AugmentedType
+                            : fallbackType as AugmentedType;
+                    let elmTypeId = elmType.$id;
+                    if (elmTypeId != null) {
+                        elm.$type = elmTypeId;
+                        propagateTypeToChildren(elm, elmType);
+                    }
+                }
+                break;
+            }
+        }
+    }
+
     forEachNode(ast, (node: AugmentedNode) => {
         // fill in line/column info
         if ("pos" in node) {
@@ -176,13 +245,16 @@ export function augmentAst(ast: AugmentedSourceFile, code: string, project: Proj
 
         if (typeChecker != null) {
             if (isTypedNode(node)) {
-                let type = isContextuallyTypedNode(node)
-                    ? (typeChecker.getContextualType(node) || typeChecker.getTypeAtLocation(node))
-                    : typeChecker.getTypeAtLocation(node);
-                if (type != null) {
-                    let id = typeTable.buildType(type);
-                    if (id != null) {
-                        node.$type = id;
+                if (node.$type == null) { // The type might have been propagated down already.
+                    let type = isContextuallyTypedNode(node)
+                        ? (typeChecker.getContextualType(node) || typeChecker.getTypeAtLocation(node))
+                        : typeChecker.getTypeAtLocation(node);
+                    if (type != null) {
+                        let id = typeTable.buildType(type);
+                        if (id != null) {
+                            node.$type = id;
+                            propagateTypeToChildren(node, type);
+                        }
                     }
                 }
                 // Extract the target call signature of a function call.

@@ -7,11 +7,13 @@ interface AugmentedSymbol extends ts.Symbol {
   $id?: number;
 }
 
-interface AugmentedType extends ts.Type {
+export interface AugmentedType extends ts.Type {
   /**
    * An internal property for predefined types, such as "true", "false", and "object".
    */
   intrinsicName?: string;
+
+  $id?: number;
 }
 
 function isTypeReference(type: ts.Type): type is ts.TypeReference {
@@ -385,7 +387,7 @@ export class TypeTable {
    *
    * Returns `null` if we do not support extraction of this type.
    */
-  public getId(type: ts.Type): number | null {
+  public getId(type: AugmentedType): number | null {
     if (this.typeRecursionDepth > 100) {
       // Ignore infinitely nested anonymous types, such as `{x: {x: {x: ... }}}`.
       // Such a type can't be written directly with TypeScript syntax (as it would need to be named),
@@ -396,11 +398,15 @@ export class TypeTable {
     if ((type.flags & ts.TypeFlags.StringLiteral) && ((type as ts.LiteralType).value as string).length > 30) {
       type = this.typeChecker.getBaseTypeOfLiteralType(type);
     }
-    ++this.typeRecursionDepth;
-    let content = this.getTypeString(type);
-    --this.typeRecursionDepth;
-    if (content == null) return null; // Type not supported.
-    let id = this.typeIds.get(content);
+    let id = type.$id;
+    let content: string;
+    if (id == null) {
+      ++this.typeRecursionDepth;
+      content = this.getTypeString(type);
+      --this.typeRecursionDepth;
+      if (content == null) return null; // Type not supported.
+      id = this.typeIds.get(content);
+    }
     if (id == null) {
       let stringValue = this.stringifyType(type);
       if (stringValue == null) {
@@ -428,6 +434,10 @@ export class TypeTable {
         this.typeExtractionState[id] = TypeExtractionState.PendingFull;
         this.buildTypeWorklist.push([type, id]);
       }
+    }
+    // If the ID was built using a hash lookup, cache it on the type object.
+    if (content != null) {
+      type.$id = id;
     }
     return id;
   }
