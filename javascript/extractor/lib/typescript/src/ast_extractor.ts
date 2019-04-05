@@ -55,12 +55,23 @@ for (let p in ts.SyntaxKind) {
 let skipWhiteSpace = /(?:\s|\/\/.*|\/\*[^]*?\*\/)*/g;
 
 /**
- * Invokes the given callback for every AST node in the given tree.
+ * Invokes the given callback for every AST node in preoder (parent before child) in the given tree.
  */
-function forEachNode(ast: ts.Node, callback: (node: ts.Node) => void) {
+function forEachNodePreorder(ast: ts.Node, callback: (node: ts.Node) => void) {
     function visit(node: ts.Node) {
         callback(node);
         ts.forEachChild(node, visit);
+    }
+    visit(ast);
+}
+
+/**
+ * Invokes the given callback for every AST node in postorder (parent after child) in the given tree.
+ */
+function forEachNodePostorder(ast: ts.Node, callback: (node: ts.Node) => void) {
+    function visit(node: ts.Node) {
+        ts.forEachChild(node, visit);
+        callback(node);
     }
     visit(ast);
 }
@@ -90,7 +101,7 @@ export function augmentAst(ast: AugmentedSourceFile, code: string, project: Proj
     let reScanTemplateToken = scanner.reScanTemplateToken.bind(scanner);
     let reScanGreaterToken = scanner.reScanGreaterToken.bind(scanner);
     if (!ast.parseDiagnostics || ast.parseDiagnostics.length === 0) {
-        forEachNode(ast, node => {
+        forEachNodePostorder(ast, node => {
             if (ts.isRegularExpressionLiteral(node)) {
                 reScanEventPos.push(node.getStart(ast, false));
                 reScanEvents.push(reScanSlashToken);
@@ -223,7 +234,7 @@ export function augmentAst(ast: AugmentedSourceFile, code: string, project: Proj
         }
     }
 
-    forEachNode(ast, (node: AugmentedNode) => {
+    forEachNodePreorder(ast, (node: AugmentedNode) => {
         // fill in line/column info
         if ("pos" in node) {
             node.$pos = augmentPos(node.pos, true);
