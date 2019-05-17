@@ -184,6 +184,19 @@ class TypeTracker extends TTypeTracker {
   }
 
   /**
+   * Holds if this is the end point of type tracking.
+   */
+  predicate end() { any() }
+
+  /**
+   * Gets a type tracker that starts where this one has left off to allow continued
+   * tracking.
+   *
+   * This predicate is only defined if the type has not been tracked into a property.
+   */
+  TypeTracker continue() { result = this }
+
+  /**
    * INTERNAL. DO NOT USE.
    *
    * Holds if this type has been tracked into a call.
@@ -191,6 +204,10 @@ class TypeTracker extends TTypeTracker {
   boolean hasCall() {
     result = hasCall
   }
+}
+
+module TypeTracker {
+  TypeTracker end() { result.end() }
 }
 
 private newtype TTypeBackTracker = MkTypeBackTracker(boolean hasReturn) {
@@ -243,6 +260,19 @@ class TypeBackTracker extends TTypeBackTracker {
   }
 
   /**
+   * Holds if this is the end point of type tracking.
+   */
+  predicate end() { any() }
+
+  /**
+   * Gets a type tracker that starts where this one has left off to allow continued
+   * tracking.
+   *
+   * This predicate is only defined if the type has not been tracked into a property.
+   */
+  TypeBackTracker continue() { result = this }
+
+  /**
    * INTERNAL. DO NOT USE.
    *
    * Holds if this type has been back-tracked into a call through return edge.
@@ -250,4 +280,8 @@ class TypeBackTracker extends TTypeBackTracker {
   boolean hasReturn() {
     result = hasReturn
   }
+}
+
+module TypeBackTracker {
+  TypeBackTracker end() { result.end() }
 }
