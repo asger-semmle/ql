@@ -83,6 +83,74 @@ predicate localExceptionStep(DataFlow::Node pred, DataFlow::Node succ) {
 }
 
 /**
+ * Defines the stage 1 call graph.
+ *
+ * This call graph is derived from the type inference and static type information.
+ *
+ * Predicates suffixed with `_v1` are specific to the stage 1 call graph.
+ */
+private module CallGraph_v1 {
+  /**
+   * Holds if the stage 1 call graph has an edge from `invoke` to `target`.
+   */
+  predicate callEdge(DataFlow::InvokeNode invoke, Function target) {
+    target = invoke.getACallee(0)
+  }
+}
+
+/**
+ * Defines the stage 2 call graph.
+ *
+ * This call graph is derived from the first stage using type tracking.
+ *
+ * Predicates suffixed with `_v2_delta` are specific to the stage 2 call graph.
+ */
+private module CallGraph_v2 {
+  /**
+  * Gets a source node that may refer to the given class.
+  */
+  DataFlow::SourceNode getAReferenceToClass(DataFlow::ClassNode cls, DataFlow::TypeTracker t) {
+    t.start() and
+    result = cls
+    or
+    exists(DataFlow::TypeTracker t2 |
+      result = getAReferenceToClass(cls, t2).track(t2, t)
+    )
+  }
+
+  /**
+  * Gets a source node that may refer to an instance of the given class.
+  */
+  DataFlow::SourceNode getAnInstanceOf(DataFlow::ClassNode cls, DataFlow::TypeTracker t) {
+    result = getAReferenceToClass(cls, t.continue()).getAnInstantiation()
+    or
+    t.start() and
+    result = cls.getAReceiverNode()
+    or
+    exists(DataFlow::TypeTracker t2 |
+      result = getAnInstanceOf(cls, t2).track(t2, t)
+    )
+  }
+
+  /**
+  * Gets a source node that may refer to an instance of the given class.
+  */
+  DataFlow::SourceNode getAnInstanceOf(DataFlow::ClassNode cls) {
+    result = getAnInstanceOf(cls, DataFlow::TypeTracker::end())
+  }
+
+  /**
+   * Holds if the stage 2 call graph has an edge from `invoke` to `target`.
+   */
+  predicate callEdge(DataFlow::InvokeNode invoke, Function target) {
+    exists(DataFlow::ClassNode cls, string name |
+      invoke = getAnInstanceOf(cls).getAMethodCall(name) and
+      target = cls.getInstanceMethod(name).getFunction()
+    )
+  }
+}
+
+/**
  * Implements a set of data flow predicates that are used by multiple predicates and
  * hence should only be computed once.
  */
@@ -101,7 +169,23 @@ private module CachedSteps {
    * Holds if `invk` may invoke `f`.
    */
   cached
-  predicate calls(DataFlow::InvokeNode invk, Function f) { f = invk.getACallee(0) }
+  predicate calls_v1(DataFlow::InvokeNode invk, Function f) { CallGraph_v1::callEdge(invk, f) }
+
+  /**
+   * Holds if `invk` may invoke `f`.
+   */
+  private
+  predicate calls_v2_delta(DataFlow::InvokeNode invk, Function f) { CallGraph_v2::callEdge(invk, f) }
+
+  /**
+   * Holds if `invk` may invoke `f`.
+   */
+  cached
+  predicate calls(DataFlow::InvokeNode invk, Function f) {
+    calls_v1(invk, f)
+    or
+    calls_v2_delta(invk, f)
+  }
 
   /**
    * Holds if `invk` may invoke `f` indirectly through the given `callback` argument.
@@ -120,14 +204,13 @@ private module CachedSteps {
   }
 
   /**
-   * Holds if `arg` is passed as an argument into parameter `parm`
-   * through invocation `invk` of function `f`.
+   * A version of `argumentPassing`, restricted to using the edges from the stage 1 call graph.
    */
   cached
-  predicate argumentPassing(
+  predicate argumentPassing_v1(
     DataFlow::InvokeNode invk, DataFlow::ValueNode arg, Function f, DataFlow::ParameterNode parm
   ) {
-    calls(invk, f) and
+    calls_v1(invk, f) and
     exists(int i |
       f.getParameter(i) = parm.getParameter() and
       not parm.isRestParameter() and
@@ -141,13 +224,52 @@ private module CachedSteps {
       not parm.isRestParameter()
     )
   }
+  
+  /**
+   * A version of `argumentPassing`, restricted to edges specific to the stage 2 call graph.
+   */
+  private predicate argumentPassing_v2_delta(
+    DataFlow::InvokeNode invk, DataFlow::ValueNode arg, Function f, DataFlow::ParameterNode parm
+  ) {
+    calls_v2_delta(invk, f) and
+    exists(int i |
+      f.getParameter(i) = parm.getParameter() and
+      not parm.isRestParameter() and
+      arg = invk.getArgument(i)
+    )
+  }
+
+  /**
+   * Holds if `arg` is passed as an argument into parameter `parm`
+   * through invocation `invk` of function `f`.
+   *
+   * Restricted to using the edges specific to the stage 2 call graph.
+   */
+  cached
+  predicate argumentPassing(
+    DataFlow::InvokeNode invk, DataFlow::ValueNode arg, Function f, DataFlow::ParameterNode parm
+  ) {
+    argumentPassing_v1(invk, arg, f, parm)
+    or
+    argumentPassing_v2_delta(invk, arg, f, parm)
+  }
+
+  /**
+   * A version of `callStep`, restricted to using edges from the stage 1 call graph.
+   */
+  cached
+  predicate callStep_v1(DataFlow::Node pred, DataFlow::Node succ) { argumentPassing_v1(_, pred, _, succ) }
 
   /**
    * Holds if there is a flow step from `pred` to `succ` through parameter passing
    * to a function call.
    */
   cached
-  predicate callStep(DataFlow::Node pred, DataFlow::Node succ) { argumentPassing(_, pred, _, succ) }
+  predicate callStep(DataFlow::Node pred, DataFlow::Node succ) {
+    callStep_v1(pred, succ)
+    or
+    argumentPassing_v2_delta(_, pred, _, succ)
+  }
 
   /**
    * Gets the `try` statement containing `stmt` without crossing function boundaries
@@ -163,14 +285,11 @@ private module CachedSteps {
   }
 
   /**
-   * Holds if there is a flow step from `pred` to `succ` through:
-   * - returning a value from a function call, or
-   * - throwing an exception out of a function call, or
-   * - the receiver flowing out of a constructor call.
+   * A version of `returnStep`, restricted to using edges from the stage 1 call graph.
    */
   cached
-  predicate returnStep(DataFlow::Node pred, DataFlow::Node succ) {
-    exists(Function f | calls(succ, f) |
+  predicate returnStep_v1(DataFlow::Node pred, DataFlow::Node succ) {
+    exists(Function f | calls_v1(succ, f) |
       returnExpr(f, pred, _)
       or
       succ instanceof DataFlow::NewNode and
@@ -180,8 +299,39 @@ private module CachedSteps {
     exists(InvokeExpr invoke, Function fun |
       DataFlow::exceptionalFunctionReturnNode(pred, fun) and
       DataFlow::exceptionalInvocationReturnNode(succ, invoke) and
-      calls(invoke.flow(), fun)
+      calls_v1(invoke.flow(), fun)
     )
+  }
+  
+  /**
+   * A version of `returnStep`, restricted to using edges specific to the stage 2 call graph.
+   */
+  private predicate returnStep_v2_delta(DataFlow::Node pred, DataFlow::Node succ) {
+    exists(Function f | calls_v2_delta(succ, f) |
+      returnExpr(f, pred, _)
+      or
+      succ instanceof DataFlow::NewNode and
+      DataFlow::thisNode(pred, f)
+    )
+    or
+    exists(InvokeExpr invoke, Function fun |
+      DataFlow::exceptionalFunctionReturnNode(pred, fun) and
+      DataFlow::exceptionalInvocationReturnNode(succ, invoke) and
+      calls_v2_delta(invoke.flow(), fun)
+    )
+  }
+
+  /**
+   * Holds if there is a flow step from `pred` to `succ` through:
+   * - returning a value from a function call, or
+   * - throwing an exception out of a function call, or
+   * - the receiver flowing out of a constructor call.
+   */
+  cached
+  predicate returnStep(DataFlow::Node pred, DataFlow::Node succ) {
+    returnStep_v1(pred, succ)
+    or
+    returnStep_v2_delta(pred, succ)
   }
 
   /**
