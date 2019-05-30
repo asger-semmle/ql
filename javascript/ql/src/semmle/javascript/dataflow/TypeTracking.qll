@@ -67,12 +67,12 @@ module StepSummary {
     globalFlowStep(pred, succ) and
     summary = LevelStep()
     or
-    // Flow into function
-    callStep(pred, succ) and
+    // Flow into function (using only stage 1 calls)
+    callStep_v1(pred, succ) and
     summary = CallStep()
     or
-    // Flow out of function
-    returnStep(pred, succ) and
+    // Flow out of function (using only stage 1 calls)
+    returnStep_v1(pred, succ) and
     summary = ReturnStep()
     or
     // Flow through an instance field between members of the same class
