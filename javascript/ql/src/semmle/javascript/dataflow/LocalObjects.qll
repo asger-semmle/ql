@@ -67,6 +67,7 @@ class LocalObject extends DataFlow::SourceNode {
     not exposedAsReceiver(this)
   }
 
+  pragma[nomagic]
   predicate hasOwnProperty(string name) {
     // the property is defined in the initializer,
     any(DataFlow::PropWrite write).writes(this, name, _) and
