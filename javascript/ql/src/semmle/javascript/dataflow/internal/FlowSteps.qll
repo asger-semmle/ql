@@ -185,8 +185,8 @@ private module CallGraph_v2 {
    */
   predicate callEdge(DataFlow::InvokeNode invoke, Function target) {
     exists(DataFlow::ClassNode cls, string name |
-      invoke = getAnInstanceOf(cls).getAMethodCall(name) and
-      target = getInheritedInstanceMethod(cls, name).getFunction()
+      callResolvesToClass(invoke, cls, name) and
+      target = cls.getInstanceMethod(name).getFunction()
     )
   }
 }
