@@ -642,6 +642,8 @@ class ClassNode extends DataFlow::SourceNode {
    */
   FunctionNode getAStaticMethod() { result = impl.getAStaticMethod() }
 
+  DataFlow::Node getASuperClassNode() { result = impl.getASuperClassNode() }
+
   /**
    * Gets a direct super class of this class.
    */
