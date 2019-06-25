@@ -113,6 +113,9 @@ private module CallGraph_v2 {
     t.start() and
     result = cls
     or
+    t.start() and
+    result.(AnalyzedNode).getAValue() = cls.getAbstractClassValue()
+    or
     exists(DataFlow::TypeTracker t2 |
       result = getAReferenceToClass(cls, t2).track(t2, t)
     )
@@ -170,6 +173,9 @@ private module CallGraph_v2 {
    */
   DataFlow::SourceNode getAnInstanceOf(DataFlow::ClassNode cls, DataFlow::TypeTracker t) {
     result = getAReferenceToClass(cls, t.continue()).getAnInstantiation()
+    or
+    t.start() and
+    result.(AnalyzedNode).getAValue() = cls.getAbstractInstanceValue()
     or
     t.start() and
     result = cls.getAReceiverNode()

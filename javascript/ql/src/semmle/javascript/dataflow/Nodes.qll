@@ -664,6 +664,20 @@ class ClassNode extends DataFlow::SourceNode {
     or
     result = getAnInstanceMember().getReceiver()
   }
+
+  /**
+   * Gets the abstract value representing the class itself.
+   */
+  AbstractValue getAbstractClassValue() {
+    result = this.(AnalyzedNode).getAValue()
+  }
+
+  /**
+   * Gets the abstract value representing an instance of this class.
+   */
+  AbstractValue getAbstractInstanceValue() {
+    result = AbstractInstance::of(getAstNode())
+  }
 }
 
 module ClassNode {
