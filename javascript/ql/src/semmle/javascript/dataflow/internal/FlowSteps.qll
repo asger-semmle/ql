@@ -203,24 +203,8 @@ private module CallGraph_v2 {
   }
 
   /**
-   * Gets the instance method of the given name in `cls`, taking inheritance into account.
-   */
-  DataFlow::FunctionNode getInheritedInstanceMethod(DataFlow::ClassNode cls, string name) {
-    result = cls.getInstanceMethod(name)
-    or
-    exists(DataFlow::ClassNode superclass |
-      isDirectSubclassOf(cls, superclass) and
-      result = getInheritedInstanceMethod(superclass, name) and
-      not exists(cls.getAnInstanceMember(name))
-    )
-  }
-
-  /**
    * Holds if the method invoked by `invoke` resolved to a member named `name` in `cls`
    * or one of its super classes.
-   *
-   * TODO: Currently unused, but kept as alternative to `getInheritedInstanceMethod`.
-   * Remove once experiments conclude which predicate to use.
    */
   predicate callResolvesToClass(DataFlow::InvokeNode invoke, DataFlow::ClassNode cls, string name) {
     invoke = getAnInstanceOf(cls).getAMethodCall(name)
