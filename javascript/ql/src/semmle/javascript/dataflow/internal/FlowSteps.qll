@@ -109,7 +109,7 @@ private module CallGraph_v2 {
   /**
    * Gets a source node that may refer to the given class.
    */
-  DataFlow::SourceNode getAReferenceToClass(DataFlow::ClassNode cls, DataFlow::TypeTracker t) {
+  private DataFlow::SourceNode getAReferenceToClass(DataFlow::ClassNode cls, DataFlow::TypeTracker t) {
     t.start() and
     result = cls
     or
@@ -121,6 +121,9 @@ private module CallGraph_v2 {
     )
   }
 
+  /**
+   * Gets a source node that may refer to the given class.
+   */
   DataFlow::SourceNode getAReferenceToClass(DataFlow::ClassNode cls) {
     result = getAReferenceToClass(cls, DataFlow::TypeTracker::end())
   }
@@ -171,7 +174,7 @@ private module CallGraph_v2 {
   /**
    * Gets a source node that may refer to an instance of the given class.
    */
-  DataFlow::SourceNode getAnInstanceOf(DataFlow::ClassNode cls, DataFlow::TypeTracker t) {
+  private DataFlow::SourceNode getAnInstanceOf(DataFlow::ClassNode cls, DataFlow::TypeTracker t) {
     result = getAReferenceToClass(cls, t.continue()).getAnInstantiation()
     or
     t.start() and
