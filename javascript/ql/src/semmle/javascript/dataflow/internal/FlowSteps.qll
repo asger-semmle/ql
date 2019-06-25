@@ -123,6 +123,49 @@ private module CallGraph_v2 {
   }
 
   /**
+   * Gets the name of the given class, as specified by its `@name` JSDoc tag.
+   */
+  string getNameTagOfClass(DataFlow::ClassNode cls) {
+    exists(JSDoc doc |
+      doc = cls.getAstNode().(Documentable).getDocumentation()
+      or
+      doc = cls.getConstructor().getFunction().(Documentable).getDocumentation()
+    |
+      result = doc.getATagByTitle("name").getName()
+    )
+  }
+
+  /**
+   * Holds if exactly one class is annotated with the given JSDoc `@name`.
+   */
+  predicate isUniqueClassName(string name) {
+    strictcount(DataFlow::ClassNode cls | getNameTagOfClass(cls) = name) = 1
+  }
+
+  /**
+   * Gets the canonical name of the given class.
+   */
+  string getCanonicalNameOfClass(DataFlow::ClassNode cls) {
+    result = getNameTagOfClass(cls) and
+    isUniqueClassName(result)
+  }
+
+  /**
+   * Gets the JSDoc type annotation describing the type of the given node, if any.
+   */
+  JSDocTypeExpr getJSDocTypeFromSourceNode(DataFlow::SourceNode node) {
+    exists(Parameter param |
+      node = DataFlow::parameterNode(param) and
+      result = param.getJSDocTag().getType()
+    )
+    or
+    exists(Function target |
+      CallGraph_v1::callEdge(node, target) and
+      result = target.getReturnTypeAnnotation()
+    )
+  }
+
+  /**
    * Gets a source node that may refer to an instance of the given class.
    */
   DataFlow::SourceNode getAnInstanceOf(DataFlow::ClassNode cls, DataFlow::TypeTracker t) {
@@ -130,6 +173,9 @@ private module CallGraph_v2 {
     or
     t.start() and
     result = cls.getAReceiverNode()
+    or
+    t.start() and
+    getJSDocTypeFromSourceNode(result).hasQualifiedName(getCanonicalNameOfClass(cls))
     or
     exists(DataFlow::TypeTracker t2 |
       result = getAnInstanceOf(cls, t2).track(t2, t)
