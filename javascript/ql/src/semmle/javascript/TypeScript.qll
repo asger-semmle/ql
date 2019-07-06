@@ -1096,6 +1096,8 @@ class ExpressionWithTypeArguments extends @expressionwithtypearguments, Expr {
   override ControlFlowNode getFirstControlFlowNode() {
     result = getExpression().getFirstControlFlowNode()
   }
+
+  override Expr getUnderlyingValue() { result = getExpression().getUnderlyingValue() }
 }
 
 /**
@@ -1193,6 +1195,8 @@ class NonNullAssertion extends Expr, @non_null_assertion {
   override ControlFlowNode getFirstControlFlowNode() {
     result = getExpression().getFirstControlFlowNode()
   }
+
+  override Expr getUnderlyingValue() { result = getExpression().getUnderlyingValue() }
 }
 
 /**
