@@ -27,7 +27,6 @@ module DataFlow {
     TSsaDefNode(SsaDefinition d) or
     TPropNode(@property p) or
     TRestPatternNode(DestructuringPattern dp, Expr rest) { rest = dp.getRest() } or
-    TDestructuringPatternNode(DestructuringPattern dp) or
     TElementPatternNode(ArrayPattern ap, Expr p) { p = ap.getElement(_) } or
     TElementNode(ArrayExpr arr, Expr e) { e = arr.getAnElement() } or
     TReflectiveCallNode(MethodCallExpr ce, string kind) {
@@ -261,28 +260,6 @@ module DataFlow {
     override string toString() { result = "..." + rest.toString() }
 
     override ASTNode getAstNode() { result = rest }
-  }
-
-  /**
-   * A node in the data flow graph which corresponds to the value destructured by an
-   * object or array pattern.
-   */
-  private class DestructuringPatternNode extends Node, TDestructuringPatternNode {
-    DestructuringPattern pattern;
-
-    DestructuringPatternNode() { this = TDestructuringPatternNode(pattern) }
-
-    override BasicBlock getBasicBlock() { result = pattern.getBasicBlock() }
-
-    override predicate hasLocationInfo(
-      string filepath, int startline, int startcolumn, int endline, int endcolumn
-    ) {
-      pattern.getLocation().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
-    }
-
-    override string toString() { result = pattern.toString() }
-
-    override ASTNode getAstNode() { result = pattern }
   }
 
   /**
@@ -671,7 +648,7 @@ module DataFlow {
     /** Gets the value pattern of this property pattern. */
     Expr getValuePattern() { result = prop.getValuePattern() }
 
-    override Node getBase() { result = TDestructuringPatternNode(prop.getObjectPattern()) }
+    override Node getBase() { result = TValueNode(prop.getObjectPattern()) }
 
     override Expr getPropertyNameExpr() { result = prop.getNameExpr() }
 
@@ -684,7 +661,7 @@ module DataFlow {
    * for `[ ...elts ] = arr`.
    */
   private class RestPatternAsPropRead extends PropRead, RestPatternNode {
-    override Node getBase() { result = TDestructuringPatternNode(pattern) }
+    override Node getBase() { result = TValueNode(pattern) }
 
     override Expr getPropertyNameExpr() { none() }
 
@@ -700,7 +677,7 @@ module DataFlow {
    * instead treating it as a read of an unknown property.
    */
   private class ElementPatternAsPropRead extends PropRead, ElementPatternNode {
-    override Node getBase() { result = TDestructuringPatternNode(pattern) }
+    override Node getBase() { result = TValueNode(pattern) }
 
     override Expr getPropertyNameExpr() { none() }
 
@@ -1016,7 +993,7 @@ module DataFlow {
   predicate parameterNode(DataFlow::Node nd, Parameter p) {
     nd = ssaDefinitionNode(SSA::definition((SimpleParameter)p))
     or
-    nd = TDestructuringPatternNode(p)
+    nd = TValueNode(p.(DestructuringPattern))
     or
     nd = TUnusedParameterNode(p)
   }
@@ -1160,7 +1137,7 @@ module DataFlow {
     exists(VarDef def |
       // from `e` to `{ p: x }` in `{ p: x } = e`
       pred = valueNode(defSourceNode(def)) and
-      succ = TDestructuringPatternNode(def.getTarget())
+      succ = TValueNode(def.getTarget().(DestructuringPattern))
     )
     or
     // flow from the value read from a property pattern to the value being
@@ -1171,13 +1148,13 @@ module DataFlow {
     // add edge from the 'p:' pattern to '{ q:x }'.
     exists(PropertyPattern pattern |
       pred = TPropNode(pattern) and
-      succ = TDestructuringPatternNode(pattern.getValuePattern())
+      succ = TValueNode(pattern.getValuePattern().(DestructuringPattern))
     )
     or
     // Like the step above, but for array destructuring patterns.
     exists(Expr elm |
       pred = TElementPatternNode(_, elm) and
-      succ = TDestructuringPatternNode(elm)
+      succ = TValueNode(elm.(DestructuringPattern))
     )
     or
     // flow from 'this' parameter into 'this' expressions
