@@ -34,9 +34,6 @@ module DataFlow {
       (kind = "call" or kind = "apply")
     } or
     TThisNode(StmtContainer f) { f.(Function).getThisBinder() = f or f instanceof TopLevel } or
-    TUnusedParameterNode(SimpleParameter p) {
-      not exists(SSA::definition(p))
-    } or
     TDestructuredModuleImportNode(ImportDeclaration decl) {
       exists(decl.getASpecifier().getImportedName())
     } or
@@ -571,7 +568,7 @@ module DataFlow {
         result = paramNode
         or
         // special case: there is no SSA flow step for unused parameters
-        paramNode instanceof UnusedParameterNode and
+        isUnusedParameter(param) and
         result = param.getDefault().flow()
       )
     }
@@ -703,30 +700,6 @@ module DataFlow {
     override Expr getPropertyNameExpr() { result = spec.getImported() }
 
     override string getPropertyName() { result = spec.getImportedName() }
-  }
-
-  /**
-   * A data flow node representing an unused parameter.
-   *
-   * This case exists to ensure all parameters have a corresponding data-flow node.
-   * In most cases, parameters are represented by SSA definitions or destructuring pattern nodes.
-   */
-  private class UnusedParameterNode extends DataFlow::Node, TUnusedParameterNode {
-    SimpleParameter p;
-
-    UnusedParameterNode() { this = TUnusedParameterNode(p) }
-
-    override string toString() { result = p.toString() }
-
-    override ASTNode getAstNode() { result = p }
-
-    override BasicBlock getBasicBlock() { result = p.getBasicBlock() }
-
-    override predicate hasLocationInfo(
-      string filepath, int startline, int startcolumn, int endline, int endcolumn
-    ) {
-      p.getLocation().hasLocationInfo(filepath, startline, startcolumn, endline, endcolumn)
-    }
   }
 
   /**
@@ -987,6 +960,10 @@ module DataFlow {
   /** Gets the node corresponding to the initialization of parameter `p`. */
   ParameterNode parameterNode(Parameter p) { result.getParameter() = p }
 
+  private predicate isUnusedParameter(SimpleParameter p) {
+    not exists(SSA::definition(p))
+  }
+
   /**
    * INTERNAL: Use `parameterNode(Parameter)` instead.
    */
@@ -995,7 +972,8 @@ module DataFlow {
     or
     nd = TValueNode(p.(DestructuringPattern))
     or
-    nd = TUnusedParameterNode(p)
+    isUnusedParameter(p) and
+    nd = TValueNode(p)
   }
 
   /**
@@ -1280,8 +1258,6 @@ module DataFlow {
     exists(PropertyPattern p | nd = TPropNode(p)) and cause = "heap"
     or
     nd instanceof TElementPatternNode and cause = "heap"
-    or
-    nd instanceof UnusedParameterNode and cause = "call"
   }
 
   /**
