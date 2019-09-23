@@ -308,13 +308,22 @@ abstract class BarrierGuardNode extends DataFlow::Node {
       )
     )
     or
-    // 2) `nd` is an instance of an access path `p`, and dominated by a barrier for `p`
+    // 2a) `nd` is an instance of an access path `p`, and dominated by a barrier for `p`
     exists(AccessPath p, BasicBlock bb, ConditionGuardNode cond, boolean outcome |
       nd = DataFlow::valueNode(p.getAnInstanceIn(bb)) and
       asExpr() = cond.getTest() and
       outcome = cond.getOutcome() and
       internalBlocksAccessPath(outcome, p, label) and
       cond.dominates(bb)
+    )
+    or
+    // 2b) ... where dominance crosses function boundaries
+    exists(AccessPath p, BasicBlock bb, ConditionGuardNode cond, boolean outcome |
+      nd = DataFlow::valueNode(p.getAnInstanceIn(bb)) and
+      asExpr() = cond.getTest() and
+      outcome = cond.getOutcome() and
+      internalBlocksAccessPath(outcome, p, label) and
+      cond.dominates(bb.getContainer().getEnclosingContainer*().(ControlFlowNode).getBasicBlock())
     )
   }
 
