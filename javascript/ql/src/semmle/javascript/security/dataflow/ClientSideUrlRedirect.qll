@@ -9,6 +9,7 @@
 
 import javascript
 import semmle.javascript.security.dataflow.RemoteFlowSources
+import semmle.javascript.security.TaintedUrlSuffix
 import UrlConcatenation
 
 module ClientSideUrlRedirect {
@@ -24,7 +25,7 @@ module ClientSideUrlRedirect {
 
     override predicate isSource(DataFlow::Node source, DataFlow::FlowLabel lbl) {
       source = DOM::locationSource() and
-      lbl instanceof DocumentUrl
+      lbl = TaintedUrlSuffix::label()
     }
 
     override predicate isSink(DataFlow::Node sink) { sink instanceof Sink }
@@ -36,19 +37,6 @@ module ClientSideUrlRedirect {
 
     override predicate isSanitizerEdge(DataFlow::Node source, DataFlow::Node sink) {
       hostnameSanitizingPrefixEdge(source, sink)
-    }
-
-    override predicate isAdditionalFlowStep(
-      DataFlow::Node pred, DataFlow::Node succ, DataFlow::FlowLabel f, DataFlow::FlowLabel g
-    ) {
-      queryAccess(pred, succ) and
-      f instanceof DocumentUrl and
-      g.isTaint()
-      or
-      // preserve document.url label in step from `location` to `location.href`
-      f instanceof DocumentUrl and
-      g instanceof DocumentUrl and
-      succ.(DataFlow::PropRead).accesses(pred, "href")
     }
   }
 }

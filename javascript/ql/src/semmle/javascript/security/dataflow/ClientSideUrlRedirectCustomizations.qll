@@ -6,6 +6,7 @@
 
 import javascript
 import semmle.javascript.security.dataflow.RemoteFlowSources
+import semmle.javascript.security.TaintedUrlSuffix
 import UrlConcatenation
 
 module ClientSideUrlRedirect {
@@ -25,47 +26,14 @@ module ClientSideUrlRedirect {
   abstract class Sanitizer extends DataFlow::Node { }
 
   /**
-   * A flow label for values that represent the URL of the current document, and
-   * hence are only partially user-controlled.
+   * DEPRECATED. Use `TaintedUrlSuffix::TaintedUrlSuffixLabel` instead.
    */
-  class DocumentUrl extends DataFlow::FlowLabel {
-    DocumentUrl() { this = "document.url" }
-  }
+  deprecated
+  class DocumentUrl = TaintedUrlSuffix::TaintedUrlSuffixLabel;
 
   /** A source of remote user input, considered as a flow source for unvalidated URL redirects. */
   class RemoteFlowSourceAsSource extends Source {
     RemoteFlowSourceAsSource() { this instanceof RemoteFlowSource }
-  }
-
-  /**
-   * Holds if `queryAccess` is an expression that may access the query string
-   * of a URL that flows into `nd` (that is, the part after the `?`).
-   */
-  predicate queryAccess(DataFlow::Node nd, DataFlow::Node queryAccess) {
-    exists(string propertyName |
-      queryAccess.asExpr().(PropAccess).accesses(nd.asExpr(), propertyName)
-    |
-      propertyName = "search" or propertyName = "hash"
-    )
-    or
-    exists(MethodCallExpr mce, string methodName |
-      mce = queryAccess.asExpr() and mce.calls(nd.asExpr(), methodName)
-    |
-      methodName = "split" and
-      // exclude `location.href.split('?')[0]`, which can never refer to the query string
-      not exists(PropAccess pacc | mce = pacc.getBase() | pacc.getPropertyName() = "0")
-      or
-      (methodName = "substring" or methodName = "substr") and
-      // exclude `location.href.substring(0, ...)` and similar, which can
-      // never refer to the query string
-      not mce.getArgument(0).(NumberLiteral).getIntValue() = 0
-    )
-    or
-    exists(MethodCallExpr mce |
-      queryAccess.asExpr() = mce and
-      mce = any(RegExpLiteral re).flow().(DataFlow::SourceNode).getAMethodCall("exec").asExpr() and
-      nd.asExpr() = mce.getArgument(0)
-    )
   }
 
   /**
