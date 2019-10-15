@@ -4,9 +4,22 @@
  */
 
 import javascript
+import semmle.javascript.security.TaintedUrlSuffix
 
 module DomBasedXss {
   import Xss::DomBasedXss
+
+  /**
+   * Holds if `node` starts with `<`, possibly preceded by whitespace, indicating
+   * that the jQuery `$` function will interpret it as HTML.
+   */
+  predicate hasHtmlPrefix(DataFlow::Node node) {
+    node.getStringValue().regexpMatch("(?s)\\s*<.*")
+    or
+    hasHtmlPrefix(node.getAPredecessor())
+    or
+    hasHtmlPrefix(node.(StringOps::Concatenation).getFirstOperand())
+  }
 
   /**
    * A taint-tracking configuration for reasoning about XSS.
@@ -16,33 +29,35 @@ module DomBasedXss {
 
     override predicate isSource(DataFlow::Node source) { source instanceof Source }
 
-    override predicate isSink(DataFlow::Node sink) { sink instanceof Sink }
+    override predicate isSource(DataFlow::Node source, DataFlow::FlowLabel lbl) {
+      source = DOM::locationSource() and
+      lbl = TaintedUrlSuffix::label()
+    }
+
+    override predicate isSink(DataFlow::Node sink, DataFlow::FlowLabel lbl) {
+      sink.(Sink).getAFlowLabel() = lbl
+    }
 
     override predicate isSanitizer(DataFlow::Node node) {
       super.isSanitizer(node)
       or
-      exists(PropAccess pacc | pacc = node.asExpr() |
-        isSafeLocationProperty(pacc)
-        or
-        // `$(location.hash)` is a fairly common and safe idiom
-        // (because `location.hash` always starts with `#`),
-        // so we mark `hash` as safe for the purposes of this query
-        pacc.getPropertyName() = "hash"
-      )
-      or
       node instanceof Sanitizer
+    }
+
+    override predicate isAdditionalFlowStep(DataFlow::Node src, DataFlow::Node dst, DataFlow::FlowLabel srclbl, DataFlow::FlowLabel dstlbl) {
+      // When prefixing '<' onto a tainted URL suffix, transition to general taint so it can reach potential jQuery sinks.
+      exists(StringOps::ConcatenationRoot operator |
+        hasHtmlPrefix(operator) and
+        src = operator.getAnOperand() and
+        dst = operator and
+        srclbl = TaintedUrlSuffix::label() and
+        dstlbl.isTaint()
+      )
     }
   }
 
   /** A source of remote user input, considered as a flow source for DOM-based XSS. */
   class RemoteFlowSourceAsSource extends Source {
     RemoteFlowSourceAsSource() { this instanceof RemoteFlowSource }
-  }
-
-  /**
-   * An access of the URL of this page, or of the referrer to this page.
-   */
-  class LocationSource extends Source {
-    LocationSource() { this = DOM::locationSource() }
   }
 }

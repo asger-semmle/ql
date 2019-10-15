@@ -3,6 +3,7 @@
  */
 
 import javascript
+import semmle.javascript.security.TaintedUrlSuffix
 
 /** Provides classes and predicates shared between the XSS queries. */
 module Shared {
@@ -18,6 +19,17 @@ module Shared {
      * that do not allow script injection, but injection of other undesirable HTML elements.
      */
     string getVulnerabilityKind() { result = "Cross-site scripting" }
+
+    /**
+     * Gets a flow label representing the kind of value relevant for this sink.
+     *
+     * Defaults to the `data`, `taint`, and `tainted-url-suffix` labels.
+     */
+    DataFlow::FlowLabel getAFlowLabel() {
+      result.isDataOrTaint()
+      or
+      result = TaintedUrlSuffix::label()
+    }
   }
 
   /** A sanitizer for XSS vulnerabilities. */
@@ -65,26 +77,38 @@ module DomBasedXss {
   abstract class Sanitizer extends Shared::Sanitizer { }
 
   /**
+   * An expression whose value is interpreted as either HTML or a selector by jQuery.
+   */
+  class JQuerySelectorSink extends Sink, DataFlow::ValueNode {
+    JQuerySelectorSink() {
+      exists(JQuery::MethodCall call |
+        call.interpretsArgumentAsHtml(this) and
+        call.interpretsArgumentAsSelector(this) and
+
+        // Prune infeasbile sinks early.
+        // Prune sink if it starts with something other than `<`.
+        not exists(DataFlow::Node prefix, string strval |
+          isPrefixOfJQueryHtmlString(this, prefix) and
+          strval = prefix.getStringValue() and
+          not strval.regexpMatch("(?s)\\s*<.*")
+        ) and
+
+        // Prune sink if it locally refers to `location`.
+        not DOM::locationSource().flowsTo(this)
+      )
+    }
+
+    override DataFlow::FlowLabel getAFlowLabel() {
+      result.isDataOrTaint() // Exclude tainted-url-suffix
+    }
+  }
+
+  /**
    * An expression whose value is interpreted as HTML
    * and may be inserted into the DOM through a library.
    */
   class LibrarySink extends Sink, DataFlow::ValueNode {
     LibrarySink() {
-      // call to a jQuery method that interprets its argument as HTML
-      exists(JQuery::MethodCall call | call.interpretsArgumentAsHtml(this) |
-        // either the argument is always interpreted as HTML
-        not call.interpretsArgumentAsSelector(this)
-        or
-        // or it doesn't start with something other than `<`, and so at least
-        // _may_ be interpreted as HTML
-        not exists(DataFlow::Node prefix, string strval |
-          isPrefixOfJQueryHtmlString(this, prefix) and
-          strval = prefix.getStringValue() and
-          not strval.regexpMatch("\\s*<.*")
-        ) and
-        not DOM::locationRef().flowsTo(this)
-      )
-      or
       // call to an Angular method that interprets its argument as HTML
       any(AngularJS::AngularJSCall call).interpretsArgumentAsHtml(this.asExpr())
       or
@@ -94,6 +118,11 @@ module DomBasedXss {
       |
         mcn.getMethodName() = m and
         this = mcn.getArgument(1)
+      )
+      or
+      exists(JQuery::MethodCall call |
+        call.interpretsArgumentAsHtml(this) and
+        not call.interpretsArgumentAsSelector(this)
       )
     }
   }

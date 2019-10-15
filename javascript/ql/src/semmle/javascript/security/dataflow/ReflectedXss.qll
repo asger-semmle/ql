@@ -16,7 +16,9 @@ module ReflectedXss {
 
     override predicate isSource(DataFlow::Node source) { source instanceof Source }
 
-    override predicate isSink(DataFlow::Node sink) { sink instanceof Sink }
+    override predicate isSink(DataFlow::Node sink, DataFlow::FlowLabel lbl) {
+      sink.(Sink).getAFlowLabel() = lbl
+    }
 
     override predicate isSanitizer(DataFlow::Node node) {
       super.isSanitizer(node) or
