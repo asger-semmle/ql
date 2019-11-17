@@ -38,6 +38,35 @@ nodes
 | react-native.js:8:18:8:24 | tainted |
 | react-native.js:9:27:9:33 | tainted |
 | react-native.js:9:27:9:33 | tainted |
+| sanitiser.js:24:7:24:49 | taint |
+| sanitiser.js:24:15:24:29 | window.location |
+| sanitiser.js:24:15:24:29 | window.location |
+| sanitiser.js:24:15:24:36 | window. ... .search |
+| sanitiser.js:24:15:24:49 | window. ... ring(1) |
+| sanitiser.js:30:19:30:23 | taint |
+| sanitiser.js:30:19:30:46 | taint.r ... /g, '') |
+| sanitiser.js:30:19:30:46 | taint.r ... /g, '') |
+| sanitiser.js:31:19:31:23 | taint |
+| sanitiser.js:31:19:31:48 | taint.r ... /g, '') |
+| sanitiser.js:31:19:31:48 | taint.r ... /g, '') |
+| sanitiser.js:32:19:32:23 | taint |
+| sanitiser.js:32:19:32:48 | taint.r ... /g, '') |
+| sanitiser.js:32:19:32:48 | taint.r ... /g, '') |
+| sanitiser.js:33:19:33:23 | taint |
+| sanitiser.js:33:19:33:48 | taint.r ... gi, '') |
+| sanitiser.js:33:19:33:48 | taint.r ... gi, '') |
+| sanitiser.js:34:19:34:23 | taint |
+| sanitiser.js:34:19:34:52 | taint.r ... /g, '') |
+| sanitiser.js:34:19:34:52 | taint.r ... /g, '') |
+| sanitiser.js:38:7:38:49 | taint |
+| sanitiser.js:38:15:38:29 | window.location |
+| sanitiser.js:38:15:38:29 | window.location |
+| sanitiser.js:38:15:38:36 | window. ... .search |
+| sanitiser.js:38:15:38:49 | window. ... ring(1) |
+| sanitiser.js:41:19:41:54 | /exampl ... (taint) |
+| sanitiser.js:41:19:41:57 | /exampl ... int)[1] |
+| sanitiser.js:41:19:41:57 | /exampl ... int)[1] |
+| sanitiser.js:41:49:41:53 | taint |
 | stored-xss.js:2:39:2:55 | document.location |
 | stored-xss.js:2:39:2:55 | document.location |
 | stored-xss.js:2:39:2:62 | documen ... .search |
@@ -363,6 +392,33 @@ edges
 | react-native.js:7:7:7:33 | tainted | react-native.js:9:27:9:33 | tainted |
 | react-native.js:7:17:7:33 | req.param("code") | react-native.js:7:7:7:33 | tainted |
 | react-native.js:7:17:7:33 | req.param("code") | react-native.js:7:7:7:33 | tainted |
+| sanitiser.js:24:7:24:49 | taint | sanitiser.js:30:19:30:23 | taint |
+| sanitiser.js:24:7:24:49 | taint | sanitiser.js:31:19:31:23 | taint |
+| sanitiser.js:24:7:24:49 | taint | sanitiser.js:32:19:32:23 | taint |
+| sanitiser.js:24:7:24:49 | taint | sanitiser.js:33:19:33:23 | taint |
+| sanitiser.js:24:7:24:49 | taint | sanitiser.js:34:19:34:23 | taint |
+| sanitiser.js:24:15:24:29 | window.location | sanitiser.js:24:15:24:36 | window. ... .search |
+| sanitiser.js:24:15:24:29 | window.location | sanitiser.js:24:15:24:36 | window. ... .search |
+| sanitiser.js:24:15:24:36 | window. ... .search | sanitiser.js:24:15:24:49 | window. ... ring(1) |
+| sanitiser.js:24:15:24:49 | window. ... ring(1) | sanitiser.js:24:7:24:49 | taint |
+| sanitiser.js:30:19:30:23 | taint | sanitiser.js:30:19:30:46 | taint.r ... /g, '') |
+| sanitiser.js:30:19:30:23 | taint | sanitiser.js:30:19:30:46 | taint.r ... /g, '') |
+| sanitiser.js:31:19:31:23 | taint | sanitiser.js:31:19:31:48 | taint.r ... /g, '') |
+| sanitiser.js:31:19:31:23 | taint | sanitiser.js:31:19:31:48 | taint.r ... /g, '') |
+| sanitiser.js:32:19:32:23 | taint | sanitiser.js:32:19:32:48 | taint.r ... /g, '') |
+| sanitiser.js:32:19:32:23 | taint | sanitiser.js:32:19:32:48 | taint.r ... /g, '') |
+| sanitiser.js:33:19:33:23 | taint | sanitiser.js:33:19:33:48 | taint.r ... gi, '') |
+| sanitiser.js:33:19:33:23 | taint | sanitiser.js:33:19:33:48 | taint.r ... gi, '') |
+| sanitiser.js:34:19:34:23 | taint | sanitiser.js:34:19:34:52 | taint.r ... /g, '') |
+| sanitiser.js:34:19:34:23 | taint | sanitiser.js:34:19:34:52 | taint.r ... /g, '') |
+| sanitiser.js:38:7:38:49 | taint | sanitiser.js:41:49:41:53 | taint |
+| sanitiser.js:38:15:38:29 | window.location | sanitiser.js:38:15:38:36 | window. ... .search |
+| sanitiser.js:38:15:38:29 | window.location | sanitiser.js:38:15:38:36 | window. ... .search |
+| sanitiser.js:38:15:38:36 | window. ... .search | sanitiser.js:38:15:38:49 | window. ... ring(1) |
+| sanitiser.js:38:15:38:49 | window. ... ring(1) | sanitiser.js:38:7:38:49 | taint |
+| sanitiser.js:41:19:41:54 | /exampl ... (taint) | sanitiser.js:41:19:41:57 | /exampl ... int)[1] |
+| sanitiser.js:41:19:41:54 | /exampl ... (taint) | sanitiser.js:41:19:41:57 | /exampl ... int)[1] |
+| sanitiser.js:41:49:41:53 | taint | sanitiser.js:41:19:41:54 | /exampl ... (taint) |
 | stored-xss.js:2:39:2:55 | document.location | stored-xss.js:2:39:2:62 | documen ... .search |
 | stored-xss.js:2:39:2:55 | document.location | stored-xss.js:2:39:2:62 | documen ... .search |
 | stored-xss.js:2:39:2:62 | documen ... .search | stored-xss.js:5:20:5:52 | session ... ssion') |
@@ -626,6 +682,12 @@ edges
 | nodemailer.js:13:11:13:69 | `Hi, yo ... sage}.` | nodemailer.js:13:50:13:66 | req.query.message | nodemailer.js:13:11:13:69 | `Hi, yo ... sage}.` | HTML injection vulnerability due to $@. | nodemailer.js:13:50:13:66 | req.query.message | user-provided value |
 | react-native.js:8:18:8:24 | tainted | react-native.js:7:17:7:33 | req.param("code") | react-native.js:8:18:8:24 | tainted | Cross-site scripting vulnerability due to $@. | react-native.js:7:17:7:33 | req.param("code") | user-provided value |
 | react-native.js:9:27:9:33 | tainted | react-native.js:7:17:7:33 | req.param("code") | react-native.js:9:27:9:33 | tainted | Cross-site scripting vulnerability due to $@. | react-native.js:7:17:7:33 | req.param("code") | user-provided value |
+| sanitiser.js:30:19:30:46 | taint.r ... /g, '') | sanitiser.js:24:15:24:29 | window.location | sanitiser.js:30:19:30:46 | taint.r ... /g, '') | Cross-site scripting vulnerability due to $@. | sanitiser.js:24:15:24:29 | window.location | user-provided value |
+| sanitiser.js:31:19:31:48 | taint.r ... /g, '') | sanitiser.js:24:15:24:29 | window.location | sanitiser.js:31:19:31:48 | taint.r ... /g, '') | Cross-site scripting vulnerability due to $@. | sanitiser.js:24:15:24:29 | window.location | user-provided value |
+| sanitiser.js:32:19:32:48 | taint.r ... /g, '') | sanitiser.js:24:15:24:29 | window.location | sanitiser.js:32:19:32:48 | taint.r ... /g, '') | Cross-site scripting vulnerability due to $@. | sanitiser.js:24:15:24:29 | window.location | user-provided value |
+| sanitiser.js:33:19:33:48 | taint.r ... gi, '') | sanitiser.js:24:15:24:29 | window.location | sanitiser.js:33:19:33:48 | taint.r ... gi, '') | Cross-site scripting vulnerability due to $@. | sanitiser.js:24:15:24:29 | window.location | user-provided value |
+| sanitiser.js:34:19:34:52 | taint.r ... /g, '') | sanitiser.js:24:15:24:29 | window.location | sanitiser.js:34:19:34:52 | taint.r ... /g, '') | Cross-site scripting vulnerability due to $@. | sanitiser.js:24:15:24:29 | window.location | user-provided value |
+| sanitiser.js:41:19:41:57 | /exampl ... int)[1] | sanitiser.js:38:15:38:29 | window.location | sanitiser.js:41:19:41:57 | /exampl ... int)[1] | Cross-site scripting vulnerability due to $@. | sanitiser.js:38:15:38:29 | window.location | user-provided value |
 | stored-xss.js:5:20:5:52 | session ... ssion') | stored-xss.js:2:39:2:55 | document.location | stored-xss.js:5:20:5:52 | session ... ssion') | Cross-site scripting vulnerability due to $@. | stored-xss.js:2:39:2:55 | document.location | user-provided value |
 | stored-xss.js:8:20:8:48 | localSt ... local') | stored-xss.js:3:35:3:51 | document.location | stored-xss.js:8:20:8:48 | localSt ... local') | Cross-site scripting vulnerability due to $@. | stored-xss.js:3:35:3:51 | document.location | user-provided value |
 | string-manipulations.js:3:16:3:32 | document.location | string-manipulations.js:3:16:3:32 | document.location | string-manipulations.js:3:16:3:32 | document.location | Cross-site scripting vulnerability due to $@. | string-manipulations.js:3:16:3:32 | document.location | user-provided value |

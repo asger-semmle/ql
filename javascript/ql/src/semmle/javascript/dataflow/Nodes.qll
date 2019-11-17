@@ -1331,6 +1331,17 @@ class RegExpConstructorInvokeNode extends DataFlow::InvokeNode {
     not exists(getArgument(1)) and
     result = ""
   }
+
+  /**
+   * Gets the flags provided in the second argument, or an empty string if no
+   * flags are provided, or the string `"?"` if the provided flags are not known.
+   */
+  string tryGetFlags() {
+    result = getFlags()
+    or
+    not exists(getFlags()) and
+    result = RegExp::unknownFlag()
+  }
 }
 
 /**
@@ -1390,6 +1401,15 @@ class RegExpCreationNode extends DataFlow::SourceNode {
     result = this.(RegExpLiteralNode).getFlags()
   }
 
+  /**
+   * Gets the flags provided in the second argument, or an empty string if no
+   * flags are provided, or the string `"?"` if the provided flags are not known.
+   */
+  string tryGetFlags() {
+    result = this.(RegExpConstructorInvokeNode).tryGetFlags() or
+    result = this.(RegExpLiteralNode).getFlags()
+  }
+
   /** Gets a data flow node referring to this regular expression. */
   private DataFlow::SourceNode getAReference(DataFlow::TypeTracker t) {
     t.start() and
@@ -1403,5 +1423,10 @@ class RegExpCreationNode extends DataFlow::SourceNode {
   /** Gets a data flow node referring to this regular expression. */
   DataFlow::SourceNode getAReference() {
     result = getAReference(DataFlow::TypeTracker::end())
+  }
+
+  predicate replacesMetaCharacter(RegExp::MetaCharacter char) {
+    RegExp::isGlobal(getFlags()) and
+    char.isMatchedByTerm(getRegExpTerm())
   }
 }

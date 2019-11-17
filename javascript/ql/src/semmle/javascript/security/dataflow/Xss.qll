@@ -24,19 +24,15 @@ module Shared {
   abstract class Sanitizer extends DataFlow::Node { }
 
   /**
-   * A regexp replacement involving an HTML meta-character, viewed as a sanitizer for
+   * A regexp replacement involving the HTML meta-character `<`, viewed as a sanitizer for
    * XSS vulnerabilities.
    *
-   * The XSS queries do not attempt to reason about correctness or completeness of sanitizers,
-   * so any such replacement stops taint propagation.
+   * The XSS queries do not attempt to reason about sanitizers that are missing sanitization
+   * of quotes and the `&` character.
    */
-  class MetacharEscapeSanitizer extends Sanitizer, DataFlow::MethodCallNode {
+  class MetacharEscapeSanitizer extends Sanitizer {
     MetacharEscapeSanitizer() {
-      getMethodName() = "replace" and
-      exists(RegExpConstant c |
-        c.getLiteral() = getArgument(0).getALocalSource().asExpr() and
-        c.getValue().regexpMatch("['\"&<>]")
-      )
+      RegExp::isMetaCharacterSanitizer(this, "<")
     }
   }
 
@@ -259,8 +255,8 @@ module DomBasedXss {
    * A regexp replacement involving an HTML meta-character, viewed as a sanitizer for
    * XSS vulnerabilities.
    *
-   * The XSS queries do not attempt to reason about correctness or completeness of sanitizers,
-   * so any such replacement stops taint propagation.
+   * The XSS queries do not attempt to reason about sanitizers that are missing sanitization
+   * of quotes and the `&` character.
    */
   private class MetacharEscapeSanitizer extends Sanitizer, Shared::MetacharEscapeSanitizer { }
 
@@ -304,8 +300,8 @@ module ReflectedXss {
    * A regexp replacement involving an HTML meta-character, viewed as a sanitizer for
    * XSS vulnerabilities.
    *
-   * The XSS queries do not attempt to reason about correctness or completeness of sanitizers,
-   * so any such replacement stops taint propagation.
+   * The XSS queries do not attempt to reason about sanitizers that are missing sanitization
+   * of quotes and the `&` character.
    */
   private class MetacharEscapeSanitizer extends Sanitizer, Shared::MetacharEscapeSanitizer { }
 
@@ -332,8 +328,8 @@ module StoredXss {
    * A regexp replacement involving an HTML meta-character, viewed as a sanitizer for
    * XSS vulnerabilities.
    *
-   * The XSS queries do not attempt to reason about correctness or completeness of sanitizers,
-   * so any such replacement stops taint propagation.
+   * The XSS queries do not attempt to reason about sanitizers that are missing sanitization
+   * of quotes and the `&` character.
    */
   private class MetacharEscapeSanitizer extends Sanitizer, Shared::MetacharEscapeSanitizer { }
 

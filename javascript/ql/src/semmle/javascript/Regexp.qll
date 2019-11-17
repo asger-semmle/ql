@@ -896,6 +896,9 @@ private class StringRegExpPatternSource extends RegExpPatternSource {
 }
 
 module RegExp {
+  /** Gets the string `"?"` used to represent a regular expression whose flags are unknown. */
+  string unknownFlag() { result = "?" }
+
   /** Holds `flags` includes the `m` flag. */
   bindingset[flags]
   predicate isMultiline(string flags) { flags.matches("%m%") }
@@ -911,6 +914,22 @@ module RegExp {
   /** Holds `flags` includes the `s` flag. */
   bindingset[flags]
   predicate isDotAll(string flags) { flags.matches("%s%") }
+
+  /** Holds `flags` includes the `m` flag or is the unknown flag `?`. */
+  bindingset[flags]
+  predicate maybeMultiline(string flags) { flags = unknownFlag() or isMultiline(flags) }
+
+  /** Holds `flags` includes the `g` flag or is the unknown flag `?`. */
+  bindingset[flags]
+  predicate maybeGlobal(string flags) { flags = unknownFlag() or isGlobal(flags) }
+
+  /** Holds `flags` includes the `i` flag or is the unknown flag `?`. */
+  bindingset[flags]
+  predicate maybeIgnoreCase(string flags) { flags = unknownFlag() or isIgnoreCase(flags) }
+
+  /** Holds `flags` includes the `s` flag or is the unknown flag `?`. */
+  bindingset[flags]
+  predicate maybeDotAll(string flags) { flags = unknownFlag() or isDotAll(flags) }
 
   abstract class MetaCharacter extends string {
     bindingset[this]
@@ -1026,5 +1045,43 @@ module RegExp {
   /** Treats `<` as an HTML meta-character. */
   private class HtmlMetaCharacter extends MetaCharacter {
     HtmlMetaCharacter() { this = "<" }
+  }
+
+  /**
+   * Holds if `node` blocks flow of the `char` meta-character.
+   *
+   * By default, taint-tracking configurations will step through `.replace` calls
+   * and into capture groups obtained from `.exec` and `.match` calls.
+   *
+   * A taint-tracking configuration may use this predicate to block flow through
+   * such calls, when specific meta-characters are eliminated by the regular expression.
+   */
+  predicate isMetaCharacterSanitizer(DataFlow::Node node, MetaCharacter char) {
+    exists(DataFlow::RegExpCreationNode regexp, DataFlow::MethodCallNode replace |
+      // TODO:: Reuse Replacement class from other query, possibly factor into StringOps::Replacement
+      replace.getMethodName() = "replace" and
+      regexp.getAReference().flowsTo(replace.getArgument(0)) and
+      isGlobal(regexp.getFlags()) and
+      char.isMatchedByTerm(regexp.getRegExpTerm()) and
+      not replace.getArgument(1).getStringValue().regexpMatch(".*\\$\\d.*") and
+      node = replace
+    )
+    or
+    // For the time being we do not distinguish between different capture groups.
+    // If any capture group might be tainted, we allow flow to the whole match array.
+    exists(RegExpTerm term, DataFlow::MethodCallNode call |
+      not char.isCapturedInTerm(term, _) and
+      node = call
+    |
+      exists(DataFlow::RegExpCreationNode regexp | term = regexp.getRegExpTerm() |
+        call = regexp.getAReference().getAMethodCall("exec")
+        or
+        call.getMethodName() = "match" and
+        regexp.getAReference().flowsTo(call.getArgument(0))
+      )
+      or
+      call.getMethodName() = "match" and
+      term = call.getArgument(0).asExpr().(StringLiteral).asRegExp()
+    )
   }
 }
