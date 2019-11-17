@@ -896,6 +896,22 @@ private class StringRegExpPatternSource extends RegExpPatternSource {
 }
 
 module RegExp {
+  /** Holds `flags` includes the `m` flag. */
+  bindingset[flags]
+  predicate isMultiline(string flags) { flags.matches("%m%") }
+
+  /** Holds `flags` includes the `g` flag. */
+  bindingset[flags]
+  predicate isGlobal(string flags) { flags.matches("%g%") }
+
+  /** Holds `flags` includes the `i` flag. */
+  bindingset[flags]
+  predicate isIgnoreCase(string flags) { flags.matches("%i%") }
+
+  /** Holds `flags` includes the `s` flag. */
+  bindingset[flags]
+  predicate isDotAll(string flags) { flags.matches("%s%") }
+
   abstract class MetaCharacter extends string {
     bindingset[this]
     MetaCharacter() { any() }
