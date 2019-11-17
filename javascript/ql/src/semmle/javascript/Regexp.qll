@@ -119,9 +119,7 @@ class RegExpTerm extends Locatable, @regexpterm {
   /**
    * Holds if this is the root term of a regular expression.
    */
-  predicate isRootTerm() {
-    not getParent() instanceof RegExpTerm
-  }
+  predicate isRootTerm() { not getParent() instanceof RegExpTerm }
 
   /**
    * Gets the outermost term of this regular expression.
@@ -136,9 +134,7 @@ class RegExpTerm extends Locatable, @regexpterm {
   /**
    * Holds if this term occurs as part of a regular expression literal.
    */
-  predicate isPartOfRegExpLiteral() {
-    exists(getLiteral())
-  }
+  predicate isPartOfRegExpLiteral() { exists(getLiteral()) }
 
   /**
    * Holds if this term occurs as part of a string literal.
@@ -146,9 +142,7 @@ class RegExpTerm extends Locatable, @regexpterm {
    * This predicate holds regardless of whether the string literal is actually
    * used as a regular expression. See `isUsedAsRegExp`.
    */
-  predicate isPartOfStringLiteral() {
-    getRootTerm().getParent() instanceof StringLiteral
-  }
+  predicate isPartOfStringLiteral() { getRootTerm().getParent() instanceof StringLiteral }
 
   /**
    * Holds if this term is part of a regular expression literal, or a string literal
@@ -314,8 +308,7 @@ class RegExpAnchor extends RegExpTerm, @regexp_anchor {
  * ^
  * ```
  */
-class RegExpCaret extends RegExpAnchor, @regexp_caret {
-}
+class RegExpCaret extends RegExpAnchor, @regexp_caret { }
 
 /**
  * A dollar assertion `$` matching the end of a line.
@@ -326,8 +319,7 @@ class RegExpCaret extends RegExpAnchor, @regexp_caret {
  * $
  * ```
  */
-class RegExpDollar extends RegExpAnchor, @regexp_dollar {
-}
+class RegExpDollar extends RegExpAnchor, @regexp_dollar { }
 
 /**
  * A word boundary assertion.
@@ -901,4 +893,122 @@ private class StringRegExpPatternSource extends RegExpPatternSource {
   override string getPattern() { result = getStringValue() }
 
   override RegExpTerm getRegExpTerm() { result = asExpr().(StringLiteral).asRegExp() }
+}
+
+module RegExp {
+  abstract class MetaCharacter extends string {
+    bindingset[this]
+    MetaCharacter() { any() }
+
+    /**
+     * Holds if `term` is a constant, wildcard or character class member.
+     */
+    predicate isMatchedByAtom(RegExpTerm term) {
+      term.(RegExpConstant).getValue() = this
+      or
+      exists(string lo, string hi |
+        term.(RegExpCharacterRange).isRange(lo, hi) and
+        lo <= this and
+        this <= hi
+      )
+      or
+      exists(RegExpCharacterClassEscape esc | term = esc |
+        // JS character class escapes (\w, \W, \d, \D, \s, \S) coincide
+        // with those natively supported in QL.
+        esc.getRawValue().regexpMatch(this)
+      )
+      or
+      // We don't use newlines as meta-characters so always include `.`
+      term instanceof RegExpDot
+    }
+
+    /**
+     * Holds if `term` is a constant, character range,
+     * wildcard, or character class matching this constant.
+     */
+    final predicate isMatchedByAtomOrCharClass(RegExpTerm term) {
+      isMatchedByAtom(term)
+      or
+      exists(RegExpCharacterClass cls | term = cls |
+        not cls.isInverted() and
+        isMatchedByAtom(cls.getAChild())
+      )
+      or
+      exists(RegExpCharacterClass cls | term = cls |
+        cls.isInverted() and
+        not isMatchedByAtom(cls.getAChild())
+      )
+    }
+
+    /**
+     * Holds if `term` matches this character (regardless of context).
+     */
+    final predicate isMatchedByTerm(RegExpTerm term) {
+      isMatchedByAtomOrCharClass(term)
+      or
+      isMatchedByTerm(term.(RegExpAlt).getAChild())
+      or
+      isMatchedByTerm(term.(RegExpGroup).getAChild())
+      or
+      exists(RegExpQuantifier quantifier | term = quantifier |
+        not quantifier.(RegExpRange).getLowerBound() > 1 and
+        isMatchedByTerm(quantifier.getAChild())
+      )
+    }
+
+    /**
+     * Holds if `term` accepts a string containing this character, excluding
+     * cases where it occurs as a constant within a sequence.
+     *
+     * The rationale for the latter requirement is to exclude cases where
+     * a potential injection is neutralized by contextual restrictions.
+     *
+     * Examples using `<` as the metacharacter:
+     * - Holds for the term `[^/][a-z]*`
+     * - Does not hold for the term `<[bB]>`
+     * - Holds for the term `.[bB].`.
+     */
+    final predicate isInSubstringMatchedByTerm(RegExpTerm term) {
+      isMatchedByAtomOrCharClass(term)
+      or
+      isInSubstringMatchedByTerm(term.(RegExpAlt).getAChild())
+      or
+      isInSubstringMatchedByTerm(term.(RegExpGroup).getAChild())
+      or
+      isInSubstringMatchedByTerm(term.(RegExpQuantifier).getAChild())
+      or
+      exists(RegExpSequence seq, RegExpTerm child | term = seq |
+        child = seq.getAChild() and
+        isInSubstringMatchedByTerm(child) and
+        // Avoid matching metacharacters in a hardcoded context, such the `<` in `<[bB]>`
+        not child instanceof RegExpConstant
+      )
+    }
+
+    /**
+     * Holds if `rootTerm` is a root term containing a capture group
+     * named `name` that matches a string containing this character
+     * (as defined by `isInSubstringMatchedByTerm`).
+     *
+     * `name` is derived from the 1-based index of the capture group
+     * or the name of group if it has one.
+     */
+    final predicate isCapturedInTerm(RegExpTerm rootTerm, string name) {
+      rootTerm.isRootTerm() and
+      exists(RegExpGroup group |
+        group = rootTerm.getAChild*() and
+        isInSubstringMatchedByTerm(group.getAChild()) and
+        (
+          name = group.getName()
+          or
+          name = group.getNumber().toString()
+        )
+      )
+    }
+  }
+
+  /** Treats `<` as an HTML meta-character. */
+  private class HtmlMetaCharacter extends MetaCharacter {
+    HtmlMetaCharacter() { this = "<" }
+  }
 }
