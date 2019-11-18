@@ -263,7 +263,7 @@ module DomBasedXss {
    * of `inst = new Vue({ ..., data: { prop: source } })`, if the
    * `div` element is part of the template for `inst`.
    */
-  class VHtmlSourceWrite extends TaintTracking::AdditionalTaintStep {
+  class VHtmlSourceWrite extends DataFlow::AdditionalFlowStep {
     VHtmlSink attr;
 
     VHtmlSourceWrite() {

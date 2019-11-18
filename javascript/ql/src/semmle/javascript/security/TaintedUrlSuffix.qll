@@ -34,6 +34,12 @@ module TaintedUrlSuffix {
     (
       StringConcatenation::taintStep(src, dst)
       or
+      TaintTracking::reactComponentStep(src, dst)
+      or
+      any(TaintTracking::PersistentStorageTaintStep step).step(src, dst)
+      or
+      any(Vue::InstanceHeapStep step).step(src, dst)
+      or
       any(UriLibraryStep step).step(src, dst)
       or
       promiseTaintStep(src, dst)
@@ -44,12 +50,15 @@ module TaintedUrlSuffix {
         dst = call
       |
         name = "toString" or
+        name = "valueOf" or
         name = "toUpperCase" or
         name = "toLowerCase" or
         name = "toLocaleUpperCase" or
         name = "toLocaleLowerCase" or
         name = "trim" or
         name = "trimEnd" or
+        name = "trimLeft" or
+        name = "trimRight" or
         name = "trimStart" or
         name = "normalize"
       )

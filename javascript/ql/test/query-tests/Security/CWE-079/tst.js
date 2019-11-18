@@ -70,7 +70,7 @@ dangerouslySetInnerHtml(document.location.search);
 // NOT OK
 $('myId').html(bar());
 
-[,document.location.search].forEach(function(x) {
+[,document.location.search.substr(1)].forEach(function(x) {
   if (x)
     // NOT OK
     $('myId').html(x);

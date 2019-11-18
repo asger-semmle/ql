@@ -364,6 +364,16 @@ module TaintTracking {
   }
 
   /**
+   * Holds if there is flow from `pred` to `succ` through the state or props
+   * of a React component class.
+   */
+  predicate reactComponentStep(DataFlow::Node pred, DataFlow::Node succ) {
+    any(ReactComponentStateTaintStep step).step(pred, succ)
+    or
+    any(ReactComponentPropsTaintStep step).step(pred, succ)
+  }
+
+  /**
    * A taint propagating data flow edge for assignments of the form `c1.state.p = v`,
    * where `c1` is an instance of React component `C`; in this case, we consider
    * taint to flow from `v` to any read of `c2.state.p`, where `c2`
