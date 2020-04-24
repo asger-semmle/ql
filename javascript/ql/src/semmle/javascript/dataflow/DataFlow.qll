@@ -121,7 +121,7 @@ module DataFlow {
     predicate mayHaveStringValue(string s) {
       getAPredecessor().mayHaveStringValue(s)
       or
-      s = this.(ValueNode).getAstNode().(ConstantString).getStringValue()
+      s = getStringValue()
     }
 
     /** Gets the string value of this node, if it is a string literal or constant string concatenation. */
