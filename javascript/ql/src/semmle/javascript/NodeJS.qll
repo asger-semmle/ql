@@ -326,6 +326,25 @@ private class JoinedPath extends PathExpr, @callexpr {
 }
 
 /**
+ * A path expression of the form `path.resolve(p)` where
+ * `p` is also a path expression.
+ */
+private class SingleElementResolvedPath extends PathExprInModule, @callexpr {
+  PathExpr arg;
+
+  SingleElementResolvedPath() {
+    exists(MethodCallExpr call | call = this |
+      call.getReceiver().(VarAccess).getName() = "path" and
+      call.getMethodName() = "resolve" and
+      call.getNumArgument() = 1 and
+      arg = call.getArgument(0)
+    )
+  }
+
+  override string getValue() { result = arg.getValue() }
+}
+
+/**
  * A reference to the special `module` variable.
  *
  * Example:
