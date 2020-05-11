@@ -7,8 +7,7 @@
 
 private import javascript
 
-cached
-private StmtContainer getStmtContainer(NodeInStmtContainer node) {
+private StmtContainer getRawStmtContainer(NodeInStmtContainer node) {
   exprContainers(node, result)
   or
   stmtContainers(node, result)
@@ -32,6 +31,11 @@ private StmtContainer getStmtContainer(NodeInStmtContainer node) {
   or
   // JSDoc type annotations
   stmtContainers(node.(JSDocTypeExpr).getEnclosingStmt(), result)
+}
+
+cached
+private StmtContainer getStmtContainer(NodeInStmtContainer node) {
+  result = unique(StmtContainer c | c = getRawStmtContainer(node))
 }
 
 /**
