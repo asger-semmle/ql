@@ -55,6 +55,20 @@ predicate localFlowStep(
   or
   localExceptionStep(pred, succ) and
   predlbl = succlbl
+  or
+  exists(TaintTracking::SharedTaintStep step |
+    flowLabelTaintStep(step, predlbl, succlbl) and
+    TaintTracking::sharedTaintStepInternal(pred, succ, step)
+  )
+}
+
+pragma[nomagic]
+private predicate flowLabelTaintStep(TaintTracking::SharedTaintStep step, DataFlow::FlowLabel predlbl, DataFlow::FlowLabel succlbl) {
+  predlbl.hasTaintStep(step) and succlbl = predlbl
+  or
+  predlbl.hasTaintStepTo(step, succlbl)
+  or
+  succlbl.hasTaintStepFrom(step, predlbl)
 }
 
 /**

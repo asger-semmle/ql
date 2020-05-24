@@ -309,6 +309,18 @@ abstract class FlowLabel extends string {
    * or `FlowLabel::taint()`.
    */
   final predicate isDataOrTaint() { isData() or isTaint() }
+
+  predicate hasTaintStep(TaintTracking::SharedTaintStep step) {
+    none()
+  }
+
+  predicate hasTaintStepTo(TaintTracking::SharedTaintStep step, FlowLabel dstlbl) {
+    none()
+  }
+
+  predicate hasTaintStepFrom(TaintTracking::SharedTaintStep step, FlowLabel srclbl) {
+    none()
+  }
 }
 
 /**

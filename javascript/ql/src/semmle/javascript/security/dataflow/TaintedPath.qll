@@ -50,8 +50,6 @@ module TaintedPath {
       srclabel instanceof Label::PosixPath and
       dstlabel instanceof Label::PosixPath and
       (
-        TaintTracking::uriStep(src, dst)
-        or
         exists(DataFlow::CallNode decode |
           decode.getCalleeName() = "decodeURIComponent" or decode.getCalleeName() = "decodeURI"
         |
@@ -59,10 +57,6 @@ module TaintedPath {
           dst = decode
         )
       )
-      or
-      TaintTracking::promiseStep(src, dst) and srclabel = dstlabel
-      or
-      TaintTracking::persistentStorageStep(src, dst) and srclabel = dstlabel
       or
       exists(DataFlow::PropRead read | read = dst |
         src = read.getBase() and

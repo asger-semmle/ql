@@ -103,6 +103,12 @@ module TaintedPath {
         // Absolute normalized path is the only combination that cannot contain `../`.
         not (isNormalized() and isAbsolute())
       }
+
+      override predicate hasTaintStep(TaintTracking::SharedTaintStep step) {
+        step instanceof TaintTracking::UriStep or
+        step instanceof TaintTracking::PromiseStep or
+        step instanceof TaintTracking::PersistentStorageStep
+      }
     }
 
     /**
@@ -110,6 +116,11 @@ module TaintedPath {
      */
     class SplitPath extends DataFlow::FlowLabel {
       SplitPath() { this = "splitPath" }
+
+      override predicate hasTaintStep(TaintTracking::SharedTaintStep step) {
+        step instanceof TaintTracking::PromiseStep or
+        step instanceof TaintTracking::PersistentStorageStep
+      }
     }
   }
 
