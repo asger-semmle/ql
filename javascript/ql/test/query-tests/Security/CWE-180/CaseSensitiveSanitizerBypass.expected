@@ -17,6 +17,11 @@ nodes
 | index.js:50:30:50:32 | url |
 | index.js:51:9:51:11 | url |
 | index.js:51:9:51:11 | url |
+| index.js:66:30:66:32 | url |
+| index.js:66:30:66:32 | url |
+| index.js:67:38:67:40 | url |
+| index.js:67:38:67:49 | url.protocol |
+| index.js:67:38:67:49 | url.protocol |
 edges
 | index.js:1:30:1:33 | html | index.js:4:13:4:16 | html |
 | index.js:1:30:1:33 | html | index.js:4:13:4:16 | html |
@@ -35,7 +40,12 @@ edges
 | index.js:50:30:50:32 | url | index.js:51:9:51:11 | url |
 | index.js:50:30:50:32 | url | index.js:51:9:51:11 | url |
 | index.js:50:30:50:32 | url | index.js:51:9:51:11 | url |
+| index.js:66:30:66:32 | url | index.js:67:38:67:40 | url |
+| index.js:66:30:66:32 | url | index.js:67:38:67:40 | url |
+| index.js:67:38:67:40 | url | index.js:67:38:67:49 | url.protocol |
+| index.js:67:38:67:40 | url | index.js:67:38:67:49 | url.protocol |
 #select
 | index.js:4:13:4:29 | html.substring(i) | index.js:1:30:1:33 | html | index.js:4:13:4:29 | html.substring(i) | This check can be bypasssed by mixed-case inputs from $@. | index.js:1:30:1:33 | html | here |
 | index.js:30:33:30:35 | tag | index.js:18:31:18:34 | html | index.js:30:33:30:35 | tag | This check can be bypasssed by mixed-case inputs from $@. | index.js:18:31:18:34 | html | here |
 | index.js:51:9:51:11 | url | index.js:50:30:50:32 | url | index.js:51:9:51:11 | url | This check can be bypasssed by mixed-case inputs from $@. | index.js:50:30:50:32 | url | here |
+| index.js:67:38:67:49 | url.protocol | index.js:66:30:66:32 | url | index.js:67:38:67:49 | url.protocol | This check can be bypasssed by mixed-case inputs from $@. | index.js:66:30:66:32 | url | here |

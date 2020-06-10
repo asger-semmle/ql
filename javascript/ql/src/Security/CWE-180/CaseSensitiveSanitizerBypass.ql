@@ -13,10 +13,6 @@ import javascript
 import semmle.javascript.PackageExports
 import DataFlow::PathGraph
 
-string getAMemberString(InclusionTest test) {
-  result = test.getContainerNode().getALocalSource().(DataFlow::ArrayCreationNode).getAnElement().getStringValue()
-}
-
 class Configuration extends TaintTracking::Configuration {
   Configuration() { this = "CaseSensitiveSanitizerBypass" } 
 
@@ -36,10 +32,11 @@ class Configuration extends TaintTracking::Configuration {
   }
 
   override predicate isSink(DataFlow::Node node) {
-    exists(InclusionTest test | node = test.getContainedNode() |
-      getAMemberString(test) = ["script", "SCRIPT", "javascript:"] and
+    exists(MembershipCandidate membership | node = membership |
+      not membership.isCaseInsensitive() and
+      membership.getAMemberString() = ["script", "SCRIPT", "javascript:"] and
       // Exclude tests not related to security
-      not getAMemberString(test) = ["p", "P", "b", "B", "i", "I", "https:"]
+      not membership.getAMemberString() = ["p", "P", "b", "B", "i", "I", "https:"]
     )
     or
     exists(StringOps::StartsWith startsWith |
