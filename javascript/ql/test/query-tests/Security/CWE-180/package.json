@@ -1,0 +1,5 @@
+{
+    "name": "really-bad-html-sanitizer",
+    "private": true,
+    "main": "index.js"
+}
