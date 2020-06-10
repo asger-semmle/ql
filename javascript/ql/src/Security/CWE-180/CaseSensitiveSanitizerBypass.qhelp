@@ -1,0 +1,52 @@
+<!DOCTYPE qhelp PUBLIC
+"-//Semmle//qhelp//EN"
+"qhelp.dtd">
+<qhelp>
+
+	<overview>
+		<p>
+
+            Placeholder.
+
+		</p>
+
+		<p>
+
+			Placeholder.
+
+		</p>
+	</overview>
+
+	<recommendation>
+		<p>
+
+			Placeholder.
+
+		</p>
+	</recommendation>
+
+	<example>
+
+		<p>
+
+			Placeholder.
+
+		</p>
+
+		<p>
+
+			Placeholder.
+
+		</p>
+		<p>
+
+			Placeholder.
+
+		</p>
+
+	</example>
+
+	<references>
+		<li>MDN: <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions">Regular Expressions</a></li>
+	</references>
+</qhelp>
