@@ -1197,6 +1197,28 @@ module DataFlow {
   }
 
   /**
+   * An internal pseudo-node representing the exports object from an external package.
+   */
+  private class ExternalModuleRoot extends Node, TExternalModuleRoot {
+    string name;
+
+    ExternalModuleRoot() { this = TExternalModuleRoot(name) }
+
+    override string toString() { result = "'" + name + "'" }
+  }
+
+  /**
+   * An internal pseudo-node representing the module object from an internal package.
+   */
+  private class InternalModuleRoot extends Node, TInternalModuleRoot {
+    Module mod;
+
+    InternalModuleRoot() { this = TInternalModuleRoot(mod) }
+
+    override string toString() { result = "'" + mod.getFile().getRelativePath() + "'" }
+  }
+
+  /**
    * INTERNAL. DO NOT USE.
    *
    * Gets a data flow node representing the given captured variable.

@@ -5,6 +5,7 @@
  */
 
 private import javascript
+private import semmle.javascript.dependencies.Dependencies
 
 /**
  * The raw data type underlying `DataFlow::Node`.
@@ -29,4 +30,8 @@ newtype TNode =
   THtmlAttributeNode(HTML::Attribute attr) or
   TExceptionalFunctionReturnNode(Function f) or
   TExceptionalInvocationReturnNode(InvokeExpr e) or
-  TGlobalAccessPathRoot()
+  TGlobalAccessPathRoot() or
+  TExternalModuleRoot(string name) {
+    any(NPMDependency d).getNPMPackageName() = name
+  } or
+  TInternalModuleRoot(Module mod)

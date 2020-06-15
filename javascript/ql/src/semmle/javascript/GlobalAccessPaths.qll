@@ -4,6 +4,7 @@
 
 import javascript
 private import semmle.javascript.dataflow.InferredTypes
+private import semmle.javascript.dataflow.internal.DataFlowNode
 
 deprecated module GlobalAccessPath {
   /**
@@ -58,7 +59,8 @@ module AccessPath {
       not this instanceof DataFlow::PropRead and
       not this instanceof PropertyProjection and
       not this instanceof Closure::ClosureNamespaceAccess and
-      not this = DataFlow::parameterNode(any(ImmediatelyInvokedFunctionExpr iife).getAParameter())
+      not this = DataFlow::parameterNode(any(ImmediatelyInvokedFunctionExpr iife).getAParameter()) and
+      not this instanceof DataFlow::ModuleImportNode and
     }
 
     /** Holds if this represents the root of the global access path. */
@@ -142,6 +144,29 @@ module AccessPath {
     result = ""
     or
     result = fromReference(node.getImmediatePredecessor(), root)
+    or
+    exists(string moduleName |
+      node = DataFlow::moduleImport(moduleName) and
+      root = TExternalModuleRoot(moduleName) and 
+      result = ""
+      // Note: `TExternalModuleRoot` ensures this can only be an external module.
+    )
+    or
+    exists(Import imprt |
+      node = imprt.getImportedModuleNode() and
+      root = TInternalModuleRoot(imprt.getImportedModule()) and
+      result = "exports"
+    )
+    or
+    exists(NodeModule mod |
+      node = mod.getExportsVariable().getAnAccess().flow() and
+      root = TInternalModuleRoot(mod) and
+      result = "exports"
+      or
+      node = mod.getModuleVariable().getAnAccess().flow() and
+      root = TInternalModuleRoot(mod) and
+      result = ""
+    )
     or
     exists(EffectivelyConstantVariable var |
       var.isCaptured() and
@@ -285,6 +310,12 @@ module AccessPath {
       node = DataFlow::valueNode(decl) and
       result = decl.getId().(GlobalVarDecl).getName() and
       root.isGlobal()
+    )
+    or
+    exists(ExportDeclaration decl, string name |
+      node = decl.getSourceNode(name) and
+      root = TInternalModuleRoot(decl.getTopLevel()) and
+      result = "exports." + name
     )
   }
 
