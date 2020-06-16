@@ -51,6 +51,41 @@ deprecated module GlobalAccessPath {
  */
 module AccessPath {
   /**
+   * Holds if `root` may be rebased on another access path based on the assignment at `use`.
+   *
+   * For example, `obj` below may be rebased on the `module.exports` assignment, and as a result,
+   * the function object is associated with an access path based on `module.exports` instead of
+   * the object literal.
+   * ```js
+   * let obj = {};
+   * obj.foo = function() {};
+   * module.exports = obj;
+   * ```
+   */
+  private predicate rebasingUse(DataFlow::SourceNode root, DataFlow::Node use) {
+    exists(root.getAPropertyWrite()) and
+    root.flowsTo(use) and
+    accessPathWrite(_, _, use)
+  }
+
+  /**
+   * Holds if `root` is to be rebased on another access path based on the assignment at `use`.
+   */
+  private predicate rebasingUniqueUse(DataFlow::SourceNode root, DataFlow::Node use) {
+    use = unique(DataFlow::Node u | rebasingUse(root, u) | u)
+  }
+
+  /**
+   * Holds if `root` should be seen as an alias for `base.prop`.
+   */
+  private predicate rebasing(DataFlow::SourceNode root, DataFlow::Node base, string prop) {
+    exists(DataFlow::Node use |
+      rebasingUniqueUse(root, use) and
+      accessPathWrite(base, prop, use)
+    )
+  }
+
+  /**
    * A source node that can be the root of an access path.
    */
   class Root extends DataFlow::SourceNode {
@@ -61,6 +96,7 @@ module AccessPath {
       not this instanceof Closure::ClosureNamespaceAccess and
       not this = DataFlow::parameterNode(any(ImmediatelyInvokedFunctionExpr iife).getAParameter()) and
       not this instanceof DataFlow::ModuleImportNode and
+      not rebasing(this, _, _)
     }
 
     /** Holds if this represents the root of the global access path. */
@@ -144,6 +180,11 @@ module AccessPath {
     result = ""
     or
     result = fromReference(node.getImmediatePredecessor(), root)
+    or
+    exists(DataFlow::Node base, string prop |
+      result = join(fromReference(base, root), prop) and
+      rebasing(node, base, prop)
+    )
     or
     exists(string moduleName |
       node = DataFlow::moduleImport(moduleName) and
@@ -256,6 +297,30 @@ module AccessPath {
   }
 
   /**
+   * Holds if there is an assignment of form `base.prop = rhs` for the purpose
+   * of generating access paths.
+   */
+  private predicate accessPathWrite(DataFlow::Node base, string prop, DataFlow::Node rhs) {
+    exists(DataFlow::PropWrite write |
+      base = write.getBase() and
+      prop = write.getPropertyName() and
+      rhs = write.getRhs()
+    )
+    or
+    exists(ExportDeclaration decl, string name |
+      base = TInternalModuleRoot(decl.getTopLevel()) and
+      prop = "exports." + name and
+      rhs = decl.getSourceNode(name)
+    )
+    or
+    exists(GlobalVariable var |
+      base = TGlobalAccessPathRoot() and
+      prop = var.getName() and
+      rhs = var.getAnAssignedExpr().flow()
+    )
+  }
+
+  /**
    * Gets the access path relative to `root`, which `node` is being assigned to, if any.
    *
    * Only holds for the immediate right-hand side of an assignment or property, not
@@ -273,19 +338,9 @@ module AccessPath {
    */
   cached
   private string fromRhs(DataFlow::Node node, Root root) {
-    exists(DataFlow::PropWrite write, string baseName |
-      node = write.getRhs() and
-      result = join(baseName, write.getPropertyName())
-    |
-      baseName = fromReference(write.getBase(), root)
-      or
-      baseName = fromRhs(write.getBase(), root)
-    )
-    or
-    exists(GlobalVariable var |
-      node = var.getAnAssignedExpr().flow() and
-      result = var.getName() and
-      root.isGlobal()
+    exists(DataFlow::Node base, string propName |
+      accessPathWrite(base, propName, node) and
+      result = join(fromReference(base, root), propName)
     )
     or
     exists(FunctionDeclStmt fun |
@@ -310,12 +365,6 @@ module AccessPath {
       node = DataFlow::valueNode(decl) and
       result = decl.getId().(GlobalVarDecl).getName() and
       root.isGlobal()
-    )
-    or
-    exists(ExportDeclaration decl, string name |
-      node = decl.getSourceNode(name) and
-      root = TInternalModuleRoot(decl.getTopLevel()) and
-      result = "exports." + name
     )
   }
 
