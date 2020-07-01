@@ -1,0 +1,8 @@
+{
+    "private": true,
+    "dependencies": {
+        "firebase": "*",
+        "firebase-admin": "*",
+        "firebase-functions": "*"
+    }
+}

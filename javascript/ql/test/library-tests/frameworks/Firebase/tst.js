@@ -55,7 +55,7 @@ class FirebaseWrapper2 {
   }
 }
 
-new FirebaseWrapper(firebase.initializeApp()).getRef('/news');
+new FirebaseWrapper(fb.initializeApp()).getRef('/news');
 new FirebaseWrapper2().getRef('/news');
 new FirebaseWrapper2().getNewsItem('x');
 new FirebaseWrapper2().adjustValue(x => x + 1);
